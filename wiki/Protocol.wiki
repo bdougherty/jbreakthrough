@@ -1,6 +1,3 @@
 #summary The protocol used for Breakthrough
 
-= Protocol =
-
 _coming soon_
-
