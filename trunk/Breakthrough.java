@@ -47,7 +47,16 @@ public class Breakthrough extends JFrame {
 		JPanel buttonPanel = new JPanel(new GridLayout(0,8));
 		for (int i = 0; i < buttons.length; i++) {
 			for (int j = 0; j < buttons[i].length; j++) {
-				buttons[i][j].setSize(25,25);
+				// buttons[i][j].setSize(25,25);
+				if (j == 0 || j == 1) {
+					buttons[i][j].setText("");
+					buttons[i][j].setIcon(new ImageIcon("team1.jpg"));
+				}
+				else if (j == 6 || j == 7) {
+					buttons[i][j].setText("");
+					buttons[i][j].setIcon(new ImageIcon("team2.jpg"));
+				}
+				
 				buttonPanel.add(buttons[i][j]);
 			}
 		}
