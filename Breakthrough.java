@@ -20,6 +20,7 @@ public class Breakthrough extends JFrame {
 	JLabel infoLabel;
 	JButton [][] button = new JButton[8][8];
 	int [][] pieces = new int[8][8];
+	int team = 1; // TEMP FOR DEBUGGING
 	
 	/**
 	 * Default constructor
@@ -36,22 +37,44 @@ public class Breakthrough extends JFrame {
 		JPanel infoPanel = new JPanel();
 		infoPanel.add(infoLabel = new JLabel("Woohoo!"));
 		
-		// Buttons
-		JPanel buttonPanel = new JPanel(new GridLayout(8,8));
+		// Reverse the board if you are team 2
+		JPanel buttonPanel = new JPanel(new GridLayout(8,0));
+		if (team == 2) {
+			buttonPanel.applyComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
+		}
+		
+		// Create and add the buttons to the array and panel
 		for (int i = 0; i < button.length; i++) {
 			for (int j = 0; j < button[i].length; j++) {
+				
+				// Create the button
 				button[i][j] = new JButton();
+				
+				// Initial startup positions
 				if (j == 0 || j == 1) {
 					button[i][j].setText("");
 					button[i][j].setIcon(new ImageIcon("team1.jpg"));
+					button[i][j].setActionCommand(""+j+i+"1");
 				}
 				else if (j == 6 || j == 7) {
 					button[i][j].setText("");
 					button[i][j].setIcon(new ImageIcon("team2.jpg"));
+					button[i][j].setActionCommand(""+j+i+"2");
+				}
+				else {
+					button[i][j].setActionCommand(""+j+i+"0");
 				}
 				
+				// Add button to panel
 				buttonPanel.add(button[i][j]);
-				button[i][j].addActionListener(new ButtonListener(i, j));
+				
+				// For debugging
+				button[i][j].addActionListener(new ActionListener() {
+					public void actionPerformed(ActionEvent ae) {
+						String info = ae.getActionCommand();
+						System.out.println("Coordinates: " + info.substring(0,1) + "," + info.substring(1,2) + " Team: "+ info.substring(2,3));
+					}
+				});
 			}
 		}
 		
@@ -72,20 +95,6 @@ public class Breakthrough extends JFrame {
 	 */
 	public static void main(String[] args) {
 		new Breakthrough();
-	}
-	
-	/**
-	 * DEBUG BUTTON LISTENER
-	 */
-	class ButtonListener implements ActionListener {
-		int x, y;
-		public ButtonListener(int i, int j) {
-			this.y = i;
-			this.x = j;
-		}
-		public void actionPerformed(ActionEvent ae) {
-			System.out.println("Coordinates: " + x + "," + y);
-		}
 	}
 	
 }
