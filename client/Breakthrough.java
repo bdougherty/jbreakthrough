@@ -161,15 +161,15 @@ public class Breakthrough {
 				if (j == 0 || j == 1) {
 					button[i][j].setText("");
 					button[i][j].setIcon(new ImageIcon("team1.jpg"));
-					button[i][j].setActionCommand(""+j+i+"1");
+					button[i][j].setActionCommand("1"+j+i+"");
 				}
 				else if (j == 6 || j == 7) {
 					button[i][j].setText("");
 					button[i][j].setIcon(new ImageIcon("team2.jpg"));
-					button[i][j].setActionCommand(""+j+i+"2");
+					button[i][j].setActionCommand("2"+j+i+"");
 				}
 				else {
-					button[i][j].setActionCommand(""+j+i+"0");
+					button[i][j].setActionCommand("0"+j+i+"");
 				}
 				
 				// Add button to panel
@@ -179,7 +179,7 @@ public class Breakthrough {
 				button[i][j].addActionListener(new ActionListener() {
 					public void actionPerformed(ActionEvent ae) {
 						String info = ae.getActionCommand();
-						System.out.println("Coordinates: " + info.substring(0,1) + "," + info.substring(1,2) + " Team: "+ info.substring(2,3));
+						System.out.println("Team: " + info.substring(0,1) + " Coordinates: " + info.substring(1,2) + ","+ info.substring(2,3));
 					}
 				});
 			}
