@@ -51,7 +51,7 @@ public class Breakthrough {
 		
 		// Image panel
 		JPanel imagePanel = new JPanel();
-		imagePanel.add(new JLabel(new ImageIcon("title.jpg")));
+		imagePanel.add(new JLabel(new ImageIcon("title.png")));
 		
 		// Fields and connect button
 		JPanel optionsPanel = new JPanel(new GridLayout(0, 2, 10, 10));
