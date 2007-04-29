@@ -1,7 +1,7 @@
 /**
  * BREAKTHROUGH game client
  * 
- * @version .1
+ * @version 1.0
  * 
  * @author Brad Dougherty
  * 
@@ -15,29 +15,29 @@ import java.io.*;
 
 public class Breakthrough {
 	
-	// Attributes
+	// Configuration GUI Attributes
+	private JFrame configFrame;
 	private JTextField address, name;
 	private JButton start;
-	private JLabel infoLabel, status;
+	private JLabel status;
+	
+	// Game Board GUI Attributes
+	private JFrame gameFrame;
+	private JLabel infoLabel;
 	private JButton [][] button = new JButton[8][8];
+	
+	// Game Configuration Attributes
 	private String myName, myOpponent;
 	private int team;
-	private JFrame configFrame, gameFrame;
+	
+	// Connection Attributes
+	private BufferedReader in = null;
+	private BufferedWriter out = null;
+	private Socket sock = null;
+	private String response;
 	
 	/**
-	 * Set the game options and show the main GUI
-	 * WILL ADD SOCKET IN THE FUTURE
-	 */
-	private void initializeGame(String myName, String myOpponent, int team) {
-		this.myName = myName;
-		this.myOpponent = myOpponent;
-		this.team = team;
-		createAndShowGUI();
-	}
-	
-	/**
-	 * Default constructor
-	 * Creates the GUI
+	 * Creates the config GUI
 	 */
 	public void createAndShowConfig() {
 		
@@ -56,7 +56,7 @@ public class Breakthrough {
 		// Fields and connect button
 		JPanel optionsPanel = new JPanel(new GridLayout(0, 2, 10, 10));
 		optionsPanel.add(new JLabel("Server address:"));
-		optionsPanel.add(address = new JTextField(10));
+		optionsPanel.add(address = new JTextField("129.21.97.74",10));
 		optionsPanel.add(new JLabel("Your name:"));
 		optionsPanel.add(name = new JTextField(10));
 		JPanel fieldsPanel = new JPanel();
@@ -77,48 +77,14 @@ public class Breakthrough {
 		configFrame.add(center);
 		configFrame.add(statusPanel, BorderLayout.SOUTH);
 		
-		// Add listeners
+		// Add listener for the start button
 		start.addActionListener(new ActionListener(){
+			/**
+			 * actionPerformed()
+			 * @param ae the ActionEvent
+			 */
 			public void actionPerformed(ActionEvent ae) {
-				
-				// Change GUI
-				address.setEnabled(false);
-				name.setEnabled(false);
-				start.setEnabled(false);
-				status.setText("Status: Connecting to server");
-				
-				try {
-					Thread.sleep(100);
-				}
-				catch (InterruptedException e) {
-					System.out.println(e.getMessage());
-				}
-				
-				// Connect to the server
-				// Socket sock = new Socket(address.getText(), 4567);
-
-				// Sends name to server
-				// out.write(name.getText());
-				// out.newLine();
-				// out.flush();
-				status.setText("Status: Waiting for opponent");
-				
-				try {
-					Thread.sleep(100);
-				}
-				catch (InterruptedException e) {
-					System.out.println(e.getMessage());
-				}
-				
-				// Recieve back opponents information
-				// String response = in.readLine();
-				int team = 1; // 1 for now... = Integer.parseInt(response.substring(0,1));
-				String opponentName = "Travis"; // = response.substring(2,response.length);
-				status.setText("Status: Setting up game");
-				
-				initializeGame(name.getText(), opponentName, team);
-				configFrame.setVisible(false);
-				
+				connectToServer();
 			}
 		});
 		
@@ -130,9 +96,9 @@ public class Breakthrough {
 	}
 	
 	/**
-	 * Creates the GUI
+	 * Creates the game board GUI
 	 */
-	public void createAndShowGUI() {
+	public void createAndShowGameBoard() {
 		
 		gameFrame = new JFrame();
 		
@@ -194,6 +160,25 @@ public class Breakthrough {
 		gameFrame.setLocationRelativeTo(null); // Center on screen
 		gameFrame.setVisible(true);
 		
+		// Start the game
+		// startGame();
+		
+	}
+	
+	/**
+	 * Starts the game thread
+	 */
+	private void startGame() {
+		// GameThread thread = new GameThread();
+		// thread.start();
+	}
+	
+	/**
+	 * Starts the connection thread
+	 */
+	private void connectToServer() {
+		ConnectionThread thread = new ConnectionThread();
+		thread.start();
 	}
 	
 	/**
@@ -205,11 +190,89 @@ public class Breakthrough {
 	}
 	
 	/**
-	 * Default Constructor
-	 * Shows the Configuration frame
+	 * Default Constructor - Shows the Configuration frame
 	 */
 	public Breakthrough() {
 		createAndShowConfig();
+	}
+	
+	/**
+	 * Connection Thread - Connects to the server, calls the Game Board
+	 */
+	class ConnectionThread extends Thread {
+		/**
+		 * Run - Connects to the server
+		 */
+		public void run() {
+			try {
+				
+				// Change GUI
+				address.setEnabled(false);
+				name.setEnabled(false);
+				start.setEnabled(false);
+				status.setText("Status: Connecting to server");
+
+				// Connect to the server
+				sock = new Socket(address.getText(), 4567);
+
+				// Set up the reader and writer
+				in = new BufferedReader(new InputStreamReader(sock.getInputStream()));
+				out = new BufferedWriter(new OutputStreamWriter(sock.getOutputStream()));
+				
+				// Sends name to server
+				status.setText("Status: Sending name to server");
+				out.write(name.getText());
+				out.newLine();
+				out.flush();
+				status.setText("Status: Waiting for opponent");
+
+				// Recieve back opponents information
+				response = in.readLine();
+				status.setText("Status: Recieved opponent name");
+				
+				// Parse information
+				team = Integer.parseInt(response.substring(0,1));
+				myOpponent = response.substring(2,response.length());
+				myName = name.getText();
+				status.setText("Status: Setting up game");
+				
+				// Show the game board
+				createAndShowGameBoard();
+				configFrame.setVisible(false);
+				
+			}
+			catch (NumberFormatException nfe) {
+				status.setText("Status: The number returned from the server was not valid");
+			}
+			catch (IOException ioe) {
+				status.setText("Status: An IO error occurred");
+			}
+			catch (Exception e) {
+				status.setText("Status: "+e.getMessage());
+			}
+			finally {
+				
+				// Reset the config GUI
+				address.setEnabled(true);
+				name.setEnabled(true);
+				start.setEnabled(true);
+				
+			}
+		}
+	}
+	
+	/**
+	 * Game Thread - Handles the running of the game
+	 */
+	class GameThread extends Thread {
+		/**
+		 * Run - Connects to the server
+		 */
+		public void run() {
+			
+			// CODE HERE
+			
+		}
 	}
 	
 }
