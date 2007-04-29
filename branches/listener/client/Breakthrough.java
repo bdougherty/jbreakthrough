@@ -26,9 +26,9 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 	 * Default constructor - creates the connection and game managers, initializes components, shows config dialog
 	 */
 	public Breakthrough() {
+		gameManager = new GameManager();
 		connectionManager = new ConnectionManager();
 		connectionManager.addListener(this);
-		gameManager = new GameManager();
 		initComponents();
 		layoutConfig();
 	}
@@ -187,7 +187,7 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 	 * Begining connection method - updates GUI when beginning the connection
 	 * @param e the ConnectionEvent
 	 */
-	public void beginningConnection(final ConnectionEvent e) {
+	public void beginningConnection(final BeginningConnectionEvent e) {
 		SwingUtilities.invokeLater(
 			new Runnable() {
 				public void run() {
@@ -204,10 +204,36 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 	 * @param e the ConnectionEvent
 	 */
 	public void connected(final ConnectionEvent e) {
-		myName = e.getMyName();
-		opponentName = e.getOpponentName();
-		initComponents();
-		configFrame.setVisible(false);
+		SwingUtilities.invokeLater(
+			new Runnable() {
+				public void run() {
+					if (e.connected()) {
+						myName = e.getMyName();
+						opponentName = e.getOpponentName();
+						team = e.getTeam();
+						layoutComponents();
+						configFrame.setVisible(false);
+					}
+					addressTF.setEnabled(true);
+					nameTF.setEnabled(true);
+					connectButton.setEnabled(true);
+				}
+			}
+		);
+	}
+	
+	/**
+	 * Piece moved method - updates GUI when a piece has been moved
+	 * @param e the PieceMovedEvent
+	 */
+	public void pieceMoved(final PieceMovedEvent e) {
+		SwingUtilities.invokeLater(
+			new Runnable() {
+				public void run() {
+					// CODE FOR MOVING A PIECE
+				}
+			}
+		);
 	}
 	
 	/**

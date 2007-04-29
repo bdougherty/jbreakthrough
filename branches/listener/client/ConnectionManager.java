@@ -17,6 +17,7 @@ public class ConnectionManager {
 		
 		try {
 			// Connect to the server
+			fireBeginningConnection();
 			Socket sock = new Socket(address, 4567);
 
 			// Set up the reader and writer
@@ -42,7 +43,9 @@ public class ConnectionManager {
 			fireConnected(in, out, sock, team, myName, opponentName);
 		}
 		catch (IOException e) {
+			// SHOULD ADD A CONNECTION EXCEPTION INSTEAD OF BOOLEAN
 			fireStatusChange(e.getMessage());
+			fireDidNotConnect();
 		}
 		
 	}
@@ -64,8 +67,26 @@ public class ConnectionManager {
         }
 	}
 	
+	public void fireBeginningConnection() {
+		BeginningConnectionEvent event = new BeginningConnectionEvent();
+		Iterator iter = new ArrayList<BreakthroughListener>(listeners).iterator();
+        while (iter.hasNext()) {
+            BreakthroughListener listener = (BreakthroughListener) iter.next();
+            listener.beginningConnection(event);
+        }
+	}
+	
 	public void fireConnected(BufferedReader in, BufferedWriter out, Socket sock, int team, String myName, String opponentName) {
 		ConnectionEvent event = new ConnectionEvent(in, out, sock, team, myName, opponentName);
+		Iterator iter = new ArrayList<BreakthroughListener>(listeners).iterator();
+        while (iter.hasNext()) {
+            BreakthroughListener listener = (BreakthroughListener) iter.next();
+            listener.connected(event);
+        }
+	}
+	
+	public void fireDidNotConnect() {
+		ConnectionEvent event = new ConnectionEvent(false);
 		Iterator iter = new ArrayList<BreakthroughListener>(listeners).iterator();
         while (iter.hasNext()) {
             BreakthroughListener listener = (BreakthroughListener) iter.next();

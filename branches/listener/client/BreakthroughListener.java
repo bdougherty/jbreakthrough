@@ -8,7 +8,8 @@
 public interface BreakthroughListener {
 	
 	public void statusChanged(StatusChangeEvent e);
-	public void beginningConnection(ConnectionEvent e);
+	public void beginningConnection(BeginningConnectionEvent e);
 	public void connected(ConnectionEvent e);
+	public void pieceMoved(PieceMovedEvent e);
 	
 }
