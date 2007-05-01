@@ -1,147 +1,143 @@
 /**
- * BREAKTHROUGH game client
- * 
- * @version 1.0
- * 
+ * Breakthrough Game
+ * Date: May 1, 2007
  * @author Brad Dougherty
- * 
+ * Breakthrough Client Application
  */
 
-import java.awt.*;
-import java.awt.event.*;
 import javax.swing.*;
-import java.net.*;
-import java.io.*;
+import java.awt.*;
+import java.awt.event.ActionListener;
+import java.awt.event.ActionEvent;
+import java.util.Locale;
+import java.util.ResourceBundle;
 
-public class Breakthrough {
+public class Breakthrough extends JFrame implements BreakthroughListener {
+	JFrame configFrame;
+	JTextField addressTF, nameTF;
+	JComboBox piecesCB;
+	String[] pieces = {"Default", "Halo", "Custom"};
+	JLabel statusLBL, infoLBL;
+	JButton [][] button = new JButton[8][8];
+	JButton connectButton;
+	int team;
+	String myName, opponentName, response;
+	ImageIcon titleICO, team1ICO, team2ICO;
+	GameManager gameManager;
 	
-	// Configuration GUI Attributes
-	private JFrame configFrame;
-	private JTextField address, name;
-	private JButton start;
-	private JLabel status;
-	
-	// Game Board GUI Attributes
-	private JFrame gameFrame;
-	private JLabel infoLabel;
-	private JButton [][] button = new JButton[8][8];
-	
-	// Game Configuration Attributes
-	private String myName, myOpponent;
-	private int team;
-	
-	// Connection Attributes
-	private BufferedReader in = null;
-	private BufferedWriter out = null;
-	private Socket sock = null;
-	private String response;
+	// Localization
+	Locale l = Locale.getDefault();
+	ResourceBundle rb = ResourceBundle.getBundle("Breakthrough",l);
 	
 	/**
-	 * Creates the config GUI
+	 * Default constructor - creates the connection and game managers, initializes components, shows config dialog
 	 */
-	public void createAndShowConfig() {
-		
+	public Breakthrough() {
+		gameManager = new GameManager();
+		gameManager.addListener(this);
+		initComponents();
+		layoutConfig();
+	}
+	
+	/**
+	 * Initializes common components
+	 */
+	private void initComponents() {
+		addressTF = new JTextField(10);
+		nameTF = new JTextField(10);
+		piecesCB = new JComboBox(pieces);
+		statusLBL = new JLabel(rb.getString("status")+rb.getString("statusWaitingForInformation"));
+		infoLBL = new JLabel("Welcome to Breakthrough!");
+		titleICO = new ImageIcon("title.png");
+		team1ICO = new ImageIcon("team1.jpg");
+		team2ICO = new ImageIcon("team2.jpg");
+		connectButton = new JButton(rb.getString("connectButton"));
+	}
+	
+	/**
+	 * Creates the configuration dialog
+	 */
+	private void layoutConfig() {
 		configFrame = new JFrame();
-		
-		// Set frame options
-		configFrame.setTitle("Breakthrough");
-		configFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		configFrame.setResizable(false);
-		configFrame.setBackground(Color.WHITE);
-		
-		// Image panel
+		JLabel addressLabel = new JLabel(rb.getString("serverAddress"));
+		JLabel nameLabel = new JLabel(rb.getString("yourName"));
+		JLabel piecesLabel = new JLabel(rb.getString("typeOfPieces"));
+		JLabel titleLabel = new JLabel(titleICO);
 		JPanel imagePanel = new JPanel();
-		imagePanel.add(new JLabel(new ImageIcon("title.png")));
-		
-		// Fields and connect button
 		JPanel optionsPanel = new JPanel(new GridLayout(0, 2, 10, 10));
-		optionsPanel.add(new JLabel("Server address:"));
-		optionsPanel.add(address = new JTextField("129.21.97.74",10));
-		optionsPanel.add(new JLabel("Your name:"));
-		optionsPanel.add(name = new JTextField(10));
 		JPanel fieldsPanel = new JPanel();
-		fieldsPanel.add(optionsPanel);
 		JPanel connectPanel = new JPanel();
-		connectPanel.add(start = new JButton("Connect!"));
-		JPanel center = new JPanel(new GridLayout(0,1));
-		center.add(fieldsPanel);
-		center.add(connectPanel);
-		
-		// Status panel
+		JPanel center = new JPanel(new BorderLayout());
 		JPanel statusPanel = new JPanel();
-		statusPanel.setBackground(Color.LIGHT_GRAY);
-		statusPanel.add(status = new JLabel("Status: Waiting for information"));
 		
-		// Add the panels to the frame
+		connectButton.addActionListener(
+			new ActionListener() {
+				public void actionPerformed(ActionEvent e) {
+					connectButton_actionPerformed();
+				}
+			}
+		);
+		
+		imagePanel.add(titleLabel);
+		optionsPanel.add(addressLabel);
+		optionsPanel.add(addressTF);
+		optionsPanel.add(nameLabel);
+		optionsPanel.add(nameTF);
+		//optionsPanel.add(piecesLabel); UNTIL FUNCTIONALITY
+		//optionsPanel.add(piecesCB);	IS ADDED
+		fieldsPanel.add(optionsPanel);
+		connectPanel.add(connectButton);
+		center.add(fieldsPanel, BorderLayout.NORTH);
+		center.add(connectPanel, BorderLayout.CENTER);
+		center.add(new JPanel(), BorderLayout.SOUTH);
+		statusPanel.setBackground(Color.LIGHT_GRAY);
+		statusPanel.add(statusLBL);
+		
 		configFrame.add(imagePanel, BorderLayout.NORTH);
 		configFrame.add(center);
 		configFrame.add(statusPanel, BorderLayout.SOUTH);
 		
-		// Add listener for the start button
-		start.addActionListener(new ActionListener(){
-			/**
-			 * actionPerformed()
-			 * @param ae the ActionEvent
-			 */
-			public void actionPerformed(ActionEvent ae) {
-				connectToServer();
-			}
-		});
-		
-		// Pack and show
+		configFrame.setTitle("Breakthrough");
+		configFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		configFrame.setResizable(false);
+		configFrame.setBackground(Color.WHITE);
 		configFrame.pack();
-		configFrame.setLocationRelativeTo(null); // Center on screen
+		configFrame.setLocationRelativeTo(null);
 		configFrame.setVisible(true);
-		
 	}
 	
 	/**
-	 * Creates the game board GUI
+	 * Creates the main window
 	 */
-	public void createAndShowGameBoard() {
-		
-		gameFrame = new JFrame();
-		
-		// Set frame options
-		gameFrame.setTitle("Breakthrough");
-		gameFrame.setResizable(false);
-		
-		// Top information panel
+	private void layoutComponents() {
 		JPanel infoPanel = new JPanel();
-		infoPanel.add(infoLabel = new JLabel("Woohoo! Welcome to Breakthrough, "+myName+".\nYou are playing against "+myOpponent));
-		
-		// Reverse the board if you are team 2
 		JPanel buttonPanel = new JPanel(new GridLayout(8,0));
 		if (team == 2) {
 			buttonPanel.applyComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
 		}
+		infoLBL = new JLabel("Woohoo! Welcome to Breakthrough, "+myName+".\nYou are playing against "+opponentName);
 		
-		// Create and add the buttons to the array and panel
 		for (int i = 0; i < button.length; i++) {
 			for (int j = 0; j < button[i].length; j++) {
 				
-				// Create the button
 				button[i][j] = new JButton();
+				buttonPanel.add(button[i][j]);
 				
-				// Initial startup positions
 				if (j == 0 || j == 1) {
 					button[i][j].setText("");
-					button[i][j].setIcon(new ImageIcon("team1.jpg"));
+					button[i][j].setIcon(team1ICO);
 					button[i][j].setActionCommand("1"+j+i+"");
 				}
 				else if (j == 6 || j == 7) {
 					button[i][j].setText("");
-					button[i][j].setIcon(new ImageIcon("team2.jpg"));
+					button[i][j].setIcon(team2ICO);
 					button[i][j].setActionCommand("2"+j+i+"");
 				}
 				else {
 					button[i][j].setActionCommand("0"+j+i+"");
 				}
 				
-				// Add button to panel
-				buttonPanel.add(button[i][j]);
-				
-				// For debugging
+				// FOR DEBUGGING - WILL BE REMOVED FOR FINAL!
 				button[i][j].addActionListener(new ActionListener() {
 					public void actionPerformed(ActionEvent ae) {
 						String info = ae.getActionCommand();
@@ -151,128 +147,107 @@ public class Breakthrough {
 			}
 		}
 		
-		// Add the panels to the frame
-		gameFrame.add(infoPanel, BorderLayout.NORTH);
-		gameFrame.add(buttonPanel);
+		infoPanel.add(infoLBL);
+		add(infoPanel, BorderLayout.NORTH);
+		add(buttonPanel);
 		
-		// Pack and show
-		gameFrame.pack();
-		gameFrame.setLocationRelativeTo(null); // Center on screen
-		gameFrame.setVisible(true);
-		
-		// Start the game
-		// startGame();
-		
+		setTitle("Breakthrough");
+		setResizable(false);
+		pack();
+		setLocationRelativeTo(null); // Center on screen
+		setVisible(true);
 	}
 	
 	/**
-	 * Starts the game thread
+	 * Listener method for connect button - tells the connection manager to connect
 	 */
-	private void startGame() {
-		// GameThread thread = new GameThread();
-		// thread.start();
+	private void connectButton_actionPerformed() {
+		new Thread() {
+			public void run() {
+				gameManager.connect(addressTF.getText(), nameTF.getText());
+			}
+		}.start();
 	}
 	
 	/**
-	 * Starts the connection thread
+	 * Status changed method - updates the status on the config dialog
+	 * @param e the StatusChangeEvent
 	 */
-	private void connectToServer() {
-		ConnectionThread thread = new ConnectionThread();
-		thread.start();
+	public void statusChanged(final StatusChangeEvent e) {
+		SwingUtilities.invokeLater(
+			new Runnable() {
+				public void run() {
+					try {
+						statusLBL.setText(rb.getString("status")+rb.getString(e.getStatus()));
+					}
+					catch (Exception ev) {
+						statusLBL.setText(rb.getString("status")+e.getStatus());
+					}
+				}
+			}
+		);
 	}
 	
 	/**
-	 * Main method - Starts the Configuration GUI
-	 * @param args command-line arguments
+	 * Begining connection method - updates GUI when beginning the connection
+	 * @param e the ConnectionEvent
+	 */
+	public void beginningConnection(final BeginningConnectionEvent e) {
+		SwingUtilities.invokeLater(
+			new Runnable() {
+				public void run() {
+					addressTF.setEnabled(false);
+					nameTF.setEnabled(false);
+					connectButton.setEnabled(false);
+				}
+			}
+		);
+	}
+	
+	/**
+	 * Connected method - when the game is fully initialized
+	 * @param e the ConnectionEvent
+	 */
+	public void connected(final ConnectionEvent e) {
+		SwingUtilities.invokeLater(
+			new Runnable() {
+				public void run() {
+					if (e.connected()) {
+						myName = e.getMyName();
+						opponentName = e.getOpponentName();
+						team = e.getTeam();
+						layoutComponents();
+						configFrame.setVisible(false);
+					}
+					addressTF.requestFocus();
+					addressTF.setEnabled(true);
+					nameTF.setEnabled(true);
+					connectButton.setEnabled(true);
+				}
+			}
+		);
+	}
+	
+	/**
+	 * Piece moved method - updates GUI when a piece has been moved
+	 * @param e the PieceMovedEvent
+	 */
+	public void pieceMoved(final PieceMovedEvent e) {
+		SwingUtilities.invokeLater(
+			new Runnable() {
+				public void run() {
+					// CODE FOR MOVING A PIECE
+				}
+			}
+		);
+	}
+	
+	/**
+	 * Main method
+	 * @param args the command line arguments
 	 */
 	public static void main(String[] args) {
 		new Breakthrough();
-	}
-	
-	/**
-	 * Default Constructor - Shows the Configuration frame
-	 */
-	public Breakthrough() {
-		createAndShowConfig();
-	}
-	
-	/**
-	 * Connection Thread - Connects to the server, calls the Game Board
-	 */
-	class ConnectionThread extends Thread {
-		/**
-		 * Run - Connects to the server
-		 */
-		public void run() {
-			try {
-				
-				// Change GUI
-				address.setEnabled(false);
-				name.setEnabled(false);
-				start.setEnabled(false);
-				status.setText("Status: Connecting to server");
-
-				// Connect to the server
-				sock = new Socket(address.getText(), 4567);
-
-				// Set up the reader and writer
-				in = new BufferedReader(new InputStreamReader(sock.getInputStream()));
-				out = new BufferedWriter(new OutputStreamWriter(sock.getOutputStream()));
-				
-				// Sends name to server
-				status.setText("Status: Sending name to server");
-				out.write(name.getText());
-				out.newLine();
-				out.flush();
-				status.setText("Status: Waiting for opponent");
-
-				// Recieve back opponents information
-				response = in.readLine();
-				status.setText("Status: Recieved opponent name");
-				
-				// Parse information
-				team = Integer.parseInt(response.substring(0,1));
-				myOpponent = response.substring(2,response.length());
-				myName = name.getText();
-				status.setText("Status: Setting up game");
-				
-				// Show the game board
-				createAndShowGameBoard();
-				configFrame.setVisible(false);
-				
-			}
-			catch (NumberFormatException nfe) {
-				status.setText("Status: The number returned from the server was not valid");
-			}
-			catch (IOException ioe) {
-				status.setText("Status: An IO error occurred");
-			}
-			catch (Exception e) {
-				status.setText("Status: "+e.getMessage());
-			}
-			finally {
-				
-				// Reset the config GUI
-				address.setEnabled(true);
-				name.setEnabled(true);
-				start.setEnabled(true);
-				
-			}
-		}
-	}
-	
-	/**
-	 * Game Thread - Handles the running of the game
-	 */
-	class GameThread extends Thread {
-		/**
-		 * Run - Connects to the server
-		 */
-		public void run() {
-			
-			// CODE HERE
-			
-		}
 	}
 	
 }
