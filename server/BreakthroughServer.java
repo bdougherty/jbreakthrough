@@ -19,7 +19,7 @@ public class BreakthroughServer {
 			
 		try{
 		
-			ServerSocket ss = new ServerSocket(4567);
+			ServerSocket ss = new ServerSocket(16789);
 			
 			int clientNumber = 1;
 			
