@@ -20,13 +20,16 @@ public class BreakthroughServer {
 		try{
 		
 			ServerSocket ss = new ServerSocket(16789);
+			System.out.println("Breakthrough Server Started...");
 			
 			int clientNumber = 1;
 			
 			//Accepts and pairs clients.
 			while(true){
 				
+				System.out.println("Waiting for clients...");
 				Socket sock = ss.accept();
+				System.out.println("Client Connected...");
 				
 				if(clientNumber == 1){
 				
@@ -70,6 +73,7 @@ class ServerThread extends Thread{
 	private BufferedReader team1Input, team2Input;
 	private PrintWriter team1Output, team2Output;
 	private boolean team1Winner, team2Winner;
+	private int[][] boardArray;
 	
 	/**
 	 *	Constructor, sets socket attributes, initializes writers and readers.
@@ -109,6 +113,31 @@ class ServerThread extends Thread{
 			//Accept names.
 			team1Name = team1Input.readLine();
 			team2Name = team2Input.readLine();
+			
+			//Create array to hold board.
+			for(int x = 0; x < 8; x++){
+			
+				for(int y = 0; y < 8; y++){
+				
+					//Team 1.
+					if(x == 0 || x == 1){
+					
+						boardArray[x][y] = 1;
+					}
+					
+					//Team 2.
+					else if(x == 6 || x == 7){
+					
+						boardArray[x][y] = 2;
+					}
+					
+					//Empty Cells.
+					else{
+						
+						boardArray[x][y] = 0;
+					}
+				}
+			}
 			
 			//Send each client team number and opponent.
 			team1Output.println("1," + team2Name);
@@ -156,23 +185,128 @@ class ServerThread extends Thread{
 	/**
 	 *	Controls moving of team 1.
  	 */
-	public void team1Move(){
+	private void team1Move(){
+	
+		int x1 = 0;		//Coordinates for first piece.
+		int y1 = 0;		
+		int x2,y2;		//Coordinates for move to.
+		boolean firstMoveIsGood = false;
+		boolean secondMoveIsGood = false;
+		String coordinates;
 		
 		//No winner.
 		team1Output.println("0");
 		team1Output.flush();
 		
+		//FIRST MOVE.
+		while(!firstMoveIsGood){	
+			
+			try{
+						
+				//Get first move.
+				coordinates = team1Input.readLine();
+				
+				x1 = Integer.parseInt(coordinates.substring(0,1));
+				
+				y1 = Integer.parseInt(coordinates.substring(1,2));
+				
+				if(boardArray[x1][y1] == 1){
+				
+					team1Output.println("-3");
+					team1Output.flush();
+					firstMoveIsGood = true;
+				}
+				else{
+				
+					team1Output.println("-4");
+					team1Output.flush();
+				}
+			}			
+			catch(NumberFormatException nfe){
+			
+				team1Output.println("-4");
+				team1Output.flush();
+			}
+			catch(IOException ioe){
+			
+				System.out.println(ioe.getMessage());
+			}
+		}
 		
+		//SECOND MOVE.
+		while(!secondMoveIsGood){
+		
+			try{
+			
+				//Get second move.
+				coordinates = team1Input.readLine();
+				
+				x2 = Integer.parseInt(coordinates.substring(0,1));
+				
+				y2 = Integer.parseInt(coordinates.substring(1,2));
+				
+				if(boardArray[x2][y2] == 1){		//Selects new piece.
+				
+					team1Output.println("-3");
+					team1Output.flush();
+				}
+				else if(boardArray[x2][y2] == 0){		//Moving to empty space.
+				
+					if(x1 + 1 == x2){		//Check for movement right one space.
+					
+						if(y1 + 1 == y2 || y1 - 1 == y2 || y1 == y2){		//Check for valid diagonal.
+						
+							//Send formatted string of valid move.
+							team1Output.println("0" + x1 + y1 + "," + "1" + x2 + y2);
+							team1Output.flush();
+							team2Output.println("0" + x1 + y1 + "," + "1" + x2 + y2);
+							team2Output.flush();
+							
+							secondMoveIsGood = true;
+							
+							//Check for winner.
+							if(x2 == 7){
+							
+								team1Winner = true;
+							}
+						}
+						else{
+						
+							team1Output.println("-4");
+							team1Output.flush();
+						}
+					}
+					else{
+					
+						team1Output.println("-4");
+						team1Output.flush();
+					}
+				}
+			}
+			catch(NumberFormatException nfe){
+			
+				team1Output.println("-4");
+				team1Output.flush();
+			}
+			catch(ArrayIndexOutOfBoundsException aie){
+			
+				team1Output.println("-4");
+				team1Output.flush();
+			}
+			catch(IOException ioe){
+			
+				System.out.println(ioe.getMessage());
+			}
+		}
 	}
 	
 	/**
 	 *	Controls moving of team 2.
  	 */
-	public void team2Move(){
+	private void team2Move(){
 		
 		//No winner.
 		team2Output.println("0");
 		team2Output.flush();
 	}
 }//End thread class
- 
