@@ -1,7 +1,8 @@
 /**
  * Breakthrough Game
- * Date: May 1, 2007
+ * Date: May 6, 2007
  * @author Brad Dougherty
+ * @version 1.0 beta
  * Breakthrough Client Application
  */
 
@@ -17,15 +18,16 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 	JTextField addressTF, nameTF;
 	JComboBox piecesCB;
 	String[] pieces = {"Default", "Halo", "Custom"};
-	JLabel statusLBL, infoLBL;
+	JLabel statusLBL, infoLBL, welcomeLBL;
 	JButton [][] button = new JButton[8][8];
 	JButton connectButton;
 	int team;
 	String myName, opponentName, response;
 	ImageIcon titleICO, team1ICO, team2ICO;
 	GameManager gameManager;
+	static Breakthrough breakthrough;
 	
-	// Localization
+	// Internationalization
 	Locale l = Locale.getDefault();
 	ResourceBundle rb = ResourceBundle.getBundle("Breakthrough",l);
 	
@@ -47,6 +49,7 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 		nameTF = new JTextField(10);
 		piecesCB = new JComboBox(pieces);
 		statusLBL = new JLabel(rb.getString("status")+rb.getString("statusWaitingForInformation"));
+		welcomeLBL = new JLabel();
 		infoLBL = new JLabel("Welcome to Breakthrough!");
 		titleICO = new ImageIcon("title.png");
 		team1ICO = new ImageIcon("team1.jpg");
@@ -110,17 +113,17 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 	 * Creates the main window
 	 */
 	private void layoutComponents() {
-		JPanel infoPanel = new JPanel();
+		JPanel infoPanel = new JPanel(new BorderLayout());
 		JPanel buttonPanel = new JPanel(new GridLayout(8,0));
 		if (team == 2) {
 			buttonPanel.applyComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
 		}
-		infoLBL = new JLabel("Woohoo! Welcome to Breakthrough, "+myName+".\nYou are playing against "+opponentName);
 		
 		for (int i = 0; i < button.length; i++) {
 			for (int j = 0; j < button[i].length; j++) {
 				
 				button[i][j] = new JButton();
+				button[i][j].putClientProperty("JButton.buttonType","toolbar"); // Square buttons on Mac
 				buttonPanel.add(button[i][j]);
 				
 				if (j == 0 || j == 1) {
@@ -137,17 +140,19 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 					button[i][j].setActionCommand("0"+j+i+"");
 				}
 				
-				// FOR DEBUGGING - WILL BE REMOVED FOR FINAL!
-				button[i][j].addActionListener(new ActionListener() {
-					public void actionPerformed(ActionEvent ae) {
-						String info = ae.getActionCommand();
-						System.out.println("Team: " + info.substring(0,1) + " Coordinates: " + info.substring(1,2) + ","+ info.substring(2,3));
+				button[i][j].addActionListener(
+					new ActionListener() {
+						public void actionPerformed(ActionEvent e) {
+							button_actionPerformed(e.getActionCommand());
+						}
 					}
-				});
+				);
+				
 			}
 		}
 		
-		infoPanel.add(infoLBL);
+		infoPanel.add(welcomeLBL, BorderLayout.NORTH);
+		infoPanel.add(statusLBL, BorderLayout.SOUTH);
 		add(infoPanel, BorderLayout.NORTH);
 		add(buttonPanel);
 		
@@ -159,30 +164,65 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 	}
 	
 	/**
-	 * Listener method for connect button - tells the connection manager to connect
+	 * Listener method for connect button - tells the game manager to connect
 	 */
 	private void connectButton_actionPerformed() {
 		new Thread() {
 			public void run() {
-				gameManager.connect(addressTF.getText(), nameTF.getText());
+				statusLBL.getParent().setBackground(Color.LIGHT_GRAY);
+				
+				// Check to see that the user entered a name
+				if (nameTF.getText().equals("")) {
+					statusChanged(new StatusChangeEvent("errorMustEnterName", Color.RED));
+					nameTF.requestFocus();
+				}
+				else {
+					gameManager.connect(addressTF.getText(), nameTF.getText());
+				}
+				
+			}
+		}.start();
+	}
+	
+	/**
+	 * Listener method for pieces - sends info to game manager when a piece is clicked on
+	 * @param info The formatted string of the piece clicked on
+	 */
+	private void button_actionPerformed(final String info) {
+		new Thread() {
+			public void run() {
+				gameManager.pieceSelected(info);
 			}
 		}.start();
 	}
 	
 	/**
 	 * Status changed method - updates the status on the config dialog
-	 * @param e the StatusChangeEvent
+	 * @param e The StatusChangeEvent
 	 */
 	public void statusChanged(final StatusChangeEvent e) {
 		SwingUtilities.invokeLater(
 			new Runnable() {
 				public void run() {
-					try {
-						statusLBL.setText(rb.getString("status")+rb.getString(e.getStatus()));
-					}
-					catch (Exception ev) {
-						statusLBL.setText(rb.getString("status")+e.getStatus());
-					}
+					final Color prevColor = statusLBL.getParent().getBackground();
+					
+					// Change the message and color
+					statusLBL.setText(rb.getString("status")+rb.getString(e.getStatus()));
+					statusLBL.getParent().setBackground(e.getColor());
+					
+					// Change the color back after 2 seconds
+					SwingUtilities.invokeLater(
+						new Runnable() {
+							public void run() {
+								try {
+									Thread.sleep(1000);
+								}
+								catch (InterruptedException ie) {}
+								statusLBL.getParent().setBackground(prevColor);
+							}
+						}
+					);
+					
 				}
 			}
 		);
@@ -190,12 +230,13 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 	
 	/**
 	 * Begining connection method - updates GUI when beginning the connection
-	 * @param e the ConnectionEvent
+	 * @param e The ConnectionEvent
 	 */
-	public void beginningConnection(final BeginningConnectionEvent e) {
+	public void connectionBeginning(final ConnectionBeginningEvent e) {
 		SwingUtilities.invokeLater(
 			new Runnable() {
 				public void run() {
+					// Disable the components
 					addressTF.setEnabled(false);
 					nameTF.setEnabled(false);
 					connectButton.setEnabled(false);
@@ -206,23 +247,52 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 	
 	/**
 	 * Connected method - when the game is fully initialized
-	 * @param e the ConnectionEvent
+	 * @param e The ConnectionEvent
 	 */
 	public void connected(final ConnectionEvent e) {
 		SwingUtilities.invokeLater(
 			new Runnable() {
 				public void run() {
-					if (e.connected()) {
-						myName = e.getMyName();
-						opponentName = e.getOpponentName();
-						team = e.getTeam();
-						layoutComponents();
-						configFrame.setVisible(false);
-					}
+					
+					// Get the game information from the event
+					myName = e.getMyName();
+					opponentName = e.getOpponentName();
+					team = e.getTeam();
+					welcomeLBL.setText(rb.getString("welcomeMessage")+", "+myName+".\n"+rb.getString("playing")+" "+opponentName);
+					
+					// Layout the game board and hide the config
+					layoutComponents();
+					configFrame.setVisible(false);
+					
+					// Reset the enabled status of components
+					addressTF.setEnabled(true);
+					nameTF.setEnabled(true);
+					connectButton.setEnabled(true);
+					
+				}
+			}
+		);
+	}
+	
+	/**
+	 * Connection error method - when there is an error connecting
+	 * @param e The ConnectionErrorEvent
+	 */
+	public void connectionError(final ConnectionErrorEvent e) {
+		SwingUtilities.invokeLater(
+			new Runnable() {
+				public void run() {
+					// Reset the enabled status of components
 					addressTF.requestFocus();
 					addressTF.setEnabled(true);
 					nameTF.setEnabled(true);
 					connectButton.setEnabled(true);
+					
+					// If the connection was reset
+					if (e.getMessage().equals("Connection reset")) {
+						reset();
+						statusChanged(new StatusChangeEvent("errorConnectionLost",Color.RED));
+					}
 				}
 			}
 		);
@@ -230,24 +300,74 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 	
 	/**
 	 * Piece moved method - updates GUI when a piece has been moved
-	 * @param e the PieceMovedEvent
+	 * @param e The PieceMovedEvent
 	 */
 	public void pieceMoved(final PieceMovedEvent e) {
 		SwingUtilities.invokeLater(
 			new Runnable() {
 				public void run() {
-					// CODE FOR MOVING A PIECE
+					
+					String info = e.getActionCommand();
+					int team = e.getTeam();
+					int x = e.getX();
+					int y = e.getY();
+					
+					button[y][x].setActionCommand(info);
+					if (team == 0) {
+						button[y][x].setIcon(new ImageIcon());
+					}
+					else if (team == 1) {
+						button[y][x].setIcon(team1ICO);
+					}
+					else if (team == 2) {
+						button[y][x].setIcon(team2ICO);
+					}
+					
+				}
+			}
+		);
+	}
+	
+	public void gameOver(final GameOverEvent e) {
+		SwingUtilities.invokeLater(
+			new Runnable() {
+				public void run() {
+					
+					String message;
+					String title;
+					if (e.isWinner()) {
+						message = "You beat "+opponentName+"!";
+						title = "Winner!";
+					}
+					else {
+						message = "Sorry, "+opponentName+" beat the crap out of you!";
+						title = "Loser";
+					}
+					
+					int reset = JOptionPane.showConfirmDialog(null, message+"\n\nWould you like to play Breakthrough again?", title, JOptionPane.YES_NO_OPTION, JOptionPane.ÅINFORMATION_MESSAGE);
+					if (reset == 0) {
+						reset();
+					}
+					
 				}
 			}
 		);
 	}
 	
 	/**
+	 * Reset method - resets the game back to the config screen
+	 */
+	public void reset() {
+		this.setVisible(false);
+		breakthrough = new Breakthrough();
+	}
+	
+	/**
 	 * Main method
-	 * @param args the command line arguments
+	 * @param args The command line arguments
 	 */
 	public static void main(String[] args) {
-		new Breakthrough();
+		breakthrough = new Breakthrough();
 	}
 	
 }
