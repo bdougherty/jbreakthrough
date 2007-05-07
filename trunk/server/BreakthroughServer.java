@@ -75,6 +75,13 @@ class ServerThread extends Thread{
 	private boolean team1Winner, team2Winner;
 	private int[][] boardArray;
 	
+	private int x1, y1;		//Coordinates for first piece.		
+	private int x2,y2;		//Coordinates for move to.
+	private boolean firstMoveIsGood;
+	private boolean secondMoveIsGood;
+	private boolean newSelection;
+	private String coordinates;
+	
 	/**
 	 *	Constructor, sets socket attributes, initializes writers and readers.
 	 * @param s1 Team 1 Socket
@@ -87,6 +94,11 @@ class ServerThread extends Thread{
 		
 		team1Winner = false;
 		team2Winner = false;
+		
+		x1 = 0;
+		y1 = 0;
+		
+		newSelection = false;
 		
 		boardArray = new int[8][8];
 		
@@ -151,32 +163,45 @@ class ServerThread extends Thread{
 			while(!team1Winner && !team2Winner){
 				
 				//Team 1 moves.
-				this.team1Move();
+				this.team1FirstMove();
 				
 				if(!team1Winner && !team2Winner){
 				
 					//Team 2 moves.
-					this.team2Move();
+					this.team2FirstMove();
 				}
 			}
 			
 			//Winner declared.
 			if(team1Winner == true){		//Team 1 winner.
 			
-				team1Output.println(-1);
+				team1Output.println("-1");
 				team1Output.flush();
 				
-				team2Output.println(-1);
+				team2Output.println("-1");
 				team2Output.flush();
+				
+				System.out.println("Team 1 winner");
 			}
 			else if(team2Winner == true){		//Team 2 winner.
 			
-				team1Output.println(-2);
+				team1Output.println("-2");
 				team1Output.flush();
 				
-				team2Output.println(-2);
+				team2Output.println("-2");
 				team2Output.flush();
+				
+				System.out.println("Team 2 winner");
 			}
+			
+			//Close connections.
+			team1Output.close();
+			team1Input.close();
+			team1Sock.close();
+			
+			team2Output.close();
+			team2Input.close();
+			team2Sock.close();
 		}
 		catch(IOException ioe){
 		
@@ -185,60 +210,79 @@ class ServerThread extends Thread{
 	}
 	
 	/**
-	 *	Controls moving of team 1.
+	 *	Controls team 1 piece selection.
  	 */
-	private void team1Move(){
-	
-		int x1 = 0;		//Coordinates for first piece.
-		int y1 = 0;		
-		int x2,y2;		//Coordinates for move to.
-		boolean firstMoveIsGood = false;
-		boolean secondMoveIsGood = false;
-		String coordinates;
+	private void team1FirstMove(){
 		
-		//No winner.
-		team1Output.println("0");
-		team1Output.flush();
+		firstMoveIsGood = false;
+		
+		if(!newSelection){
+		
+			//No winner.
+			team1Output.println("0");
+			team1Output.flush();
+		}
 		
 		//FIRST MOVE.
 		while(!firstMoveIsGood){	
 			
 			try{
-						
-				//Get first move.
-				coordinates = team1Input.readLine();
-				System.out.println("Received team 1 move");
 				
-				x1 = Integer.parseInt(coordinates.substring(0,1));
+				if(!newSelection){		
 				
-				y1 = Integer.parseInt(coordinates.substring(1,2));
+					//Get first move.
+					coordinates = team1Input.readLine();
+					
+					System.out.println("Got first coord. from P1");
+					
+					x1 = Integer.parseInt(coordinates.substring(0,1));
+					
+					y1 = Integer.parseInt(coordinates.substring(1,2));
+				}
+				else if(newSelection){
+				
+					x1 = x2;
+					y1 = y2;
+					
+					firstMoveIsGood = true;
+					this.team1SecondMove();
+				}
 				
 				if(boardArray[x1][y1] == 1){
 				
 					team1Output.println("-3");
 					team1Output.flush();
-					System.out.println("Sent: -3 valid");
 					firstMoveIsGood = true;
+					
+					System.out.println("Sent valid first coord to P1");
+					
+					this.team1SecondMove();
 				}
 				else{
 				
 					team1Output.println("-4");
 					team1Output.flush();
-					System.out.println("Sent: -4 not valid");
 				}
 			}			
 			catch(NumberFormatException nfe){
 			
 				team1Output.println("-4");
 				team1Output.flush();
-				System.out.println("Sent: -4 not valid");
 			}
 			catch(IOException ioe){
 			
 				System.out.println(ioe.getMessage());
 			}
 		}
-		
+	}
+	
+	/**
+	 *	Controls team 1 destination.
+ 	 */
+	private void team1SecondMove(){
+	
+		secondMoveIsGood = false;
+	
 		//SECOND MOVE.
 		while(!secondMoveIsGood){
 		
@@ -246,20 +290,23 @@ class ServerThread extends Thread{
 			
 				//Get second move.
 				coordinates = team1Input.readLine();
-				System.out.println("Received team 1 move");
+				
+				System.out.println("Got 2nd coord from P1.");
 				
 				x2 = Integer.parseInt(coordinates.substring(0,1));
 				
 				y2 = Integer.parseInt(coordinates.substring(1,2));
 				
 				if(boardArray[x2][y2] == 1){		//Selects new piece.
-				
+					System.out.println("equals 1");
 					team1Output.println("-3");
 					team1Output.flush();
-					System.out.println("Sent: -3 valid");
+					
+					newSelection = true;
+					this.team1FirstMove();
 				}
 				else if(boardArray[x2][y2] == 0){		//Moving to empty space.
-				
+					System.out.println("equals 0");
 					if(x1 + 1 == x2){		//Check for movement right one space.
 					
 						if(y1 + 1 == y2 || y1 - 1 == y2 || y1 == y2){		//Check for valid diagonal.
@@ -270,7 +317,51 @@ class ServerThread extends Thread{
 							team2Output.println("0" + x1 + y1 + "," + "1" + x2 + y2);
 							team2Output.flush();
 							
+							System.out.println("Sent valid 2nd coord to P1.");
+							
+							boardArray[x1][y1] = 0;
+							boardArray[x2][y2] = 1;
+							
 							secondMoveIsGood = true;
+							newSelection = false;
+							
+							//Check for winner.
+							if(x2 == 7){
+							
+								team1Winner = true;
+							}
+						}
+						else{
+						
+							team1Output.println("-4");
+							team1Output.flush();
+							
+							System.out.println("Sent invalid 2nd coord to P1.");
+						}
+					}
+					else{
+					
+						team1Output.println("-4");
+						team1Output.flush();
+					}
+				}
+				else if(boardArray[x2][y2] == 2){		//Moving to an enemy space.
+					System.out.println("equals 2");
+					if(x1 + 1 == x2){		//Check for movement right one space.
+					
+						if(y1 + 1 == y2 || y1 - 1 == y2){		//Check for valid diagonal attack.
+						
+							//Send formatted string of valid move.
+							team1Output.println("0" + x1 + y1 + "," + "1" + x2 + y2);
+							team1Output.flush();
+							team2Output.println("0" + x1 + y1 + "," + "1" + x2 + y2);
+							team2Output.flush();
+							
+							boardArray[x1][y1] = 0;
+							boardArray[x2][y2] = 1;
+							
+							secondMoveIsGood = true;
+							newSelection = false;
 							
 							//Check for winner.
 							if(x2 == 7){
@@ -284,22 +375,90 @@ class ServerThread extends Thread{
 							team1Output.flush();
 						}
 					}
-					else{
-					
-						team1Output.println("-4");
-						team1Output.flush();
-					}
 				}
 			}
 			catch(NumberFormatException nfe){
 			
 				team1Output.println("-4");
 				team1Output.flush();
+				
+				System.out.println("NFE.");
 			}
 			catch(ArrayIndexOutOfBoundsException aie){
 			
 				team1Output.println("-4");
 				team1Output.flush();
+				
+				System.out.println("AIE");
+			}
+			catch(IOException ioe){
+			
+				System.out.println(ioe.getMessage());
+				
+				System.out.println("IOE");
+			}
+		}
+	}
+	
+	/**
+	 *	Controls team 2 piece selection.
+ 	 */
+	private void team2FirstMove(){
+		
+		firstMoveIsGood = false;
+		
+		if(!newSelection){
+		
+			//No winner.
+			team2Output.println("0");
+			team2Output.flush();
+		}
+		
+		//FIRST MOVE.
+		while(!firstMoveIsGood){	
+			
+			try{
+				
+				if(!newSelection){		
+				
+					//Get first move.
+					coordinates = team2Input.readLine();
+					
+					System.out.println("Got first coord from P2.");
+					
+					x1 = Integer.parseInt(coordinates.substring(0,1));
+					
+					y1 = Integer.parseInt(coordinates.substring(1,2));
+				}
+				else if(newSelection){
+				
+					x1 = x2;
+					y1 = y2;
+					
+					firstMoveIsGood = true;
+					this.team2SecondMove();
+				}
+				
+				if(boardArray[x1][y1] == 2){
+				
+					team2Output.println("-3");
+					team2Output.flush();
+					firstMoveIsGood = true;
+					
+					System.out.println("Sent valid first coord to P2.");
+					
+					this.team2SecondMove();
+				}
+				else{
+				
+					team2Output.println("-4");
+					team2Output.flush();
+				}
+			}			
+			catch(NumberFormatException nfe){
+			
+				team2Output.println("-4");
+				team2Output.flush();
 			}
 			catch(IOException ioe){
 			
@@ -309,12 +468,126 @@ class ServerThread extends Thread{
 	}
 	
 	/**
-	 *	Controls moving of team 2.
+	 *	Controls team 2 destination.
  	 */
-	private void team2Move(){
+	private void team2SecondMove(){
+	
+		secondMoveIsGood = false;
+	
+		//SECOND MOVE.
+		while(!secondMoveIsGood){
 		
-		//No winner.
-		team2Output.println("0");
-		team2Output.flush();
+			try{
+			
+				//Get second move.
+				coordinates = team2Input.readLine();
+				
+				System.out.println("Got 2nd coord from P2.");
+				
+				x2 = Integer.parseInt(coordinates.substring(0,1));
+				
+				y2 = Integer.parseInt(coordinates.substring(1,2));
+				
+				if(boardArray[x2][y2] == 2){		//Selects new piece.
+					System.out.println("equals 2");
+					team2Output.println("-3");
+					team2Output.flush();
+					
+					newSelection = true;
+					this.team2FirstMove();
+				}
+				else if(boardArray[x2][y2] == 0){		//Moving to empty space.
+					System.out.println("equals 0");
+					if(x1 - 1 == x2){		//Check for movement left one space.
+					
+						if(y1 + 1 == y2 || y1 - 1 == y2 || y1 == y2){		//Check for valid diagonal.
+						
+							//Send formatted string of valid move.
+							team1Output.println("0" + x1 + y1 + "," + "2" + x2 + y2);
+							team1Output.flush();
+							team2Output.println("0" + x1 + y1 + "," + "2" + x2 + y2);
+							team2Output.flush();
+							
+							System.out.println("Sent valid 2nd coord to P2.");
+							
+							boardArray[x1][y1] = 0;
+							boardArray[x2][y2] = 2;
+							
+							secondMoveIsGood = true;
+							newSelection = false;
+							
+							//Check for winner.
+							if(x2 == 0){
+							
+								team2Winner = true;
+							}
+						}
+						else{
+						
+							team2Output.println("-4");
+							team2Output.flush();
+							
+							System.out.println("Sent invalid 2nd coord to P2.");
+						}
+					}
+					else{
+					
+						team2Output.println("-4");
+						team2Output.flush();
+					}
+				}
+				else if(boardArray[x2][y2] == 1){		//Moving to an enemy space.
+					System.out.println("equals 1");
+					if(x1 - 1 == x2){		//Check for movement left one space.
+					
+						if(y1 + 1 == y2 || y1 - 1 == y2){		//Check for valid diagonal attack.
+						
+							//Send formatted string of valid move.
+							team1Output.println("0" + x1 + y1 + "," + "2" + x2 + y2);
+							team1Output.flush();
+							team2Output.println("0" + x1 + y1 + "," + "2" + x2 + y2);
+							team2Output.flush();
+							
+							boardArray[x1][y1] = 0;
+							boardArray[x2][y2] = 2;
+							
+							secondMoveIsGood = true;
+							newSelection = false;
+							
+							//Check for winner.
+							if(x2 == 0){
+							
+								team2Winner = true;
+							}
+						}
+						else{
+						
+							team2Output.println("-4");
+							team2Output.flush();
+						}
+					}
+				}
+			}
+			catch(NumberFormatException nfe){
+			
+				team2Output.println("-4");
+				team2Output.flush();
+				
+				System.out.println("NFE.");
+			}
+			catch(ArrayIndexOutOfBoundsException aie){
+			
+				team2Output.println("-4");
+				team2Output.flush();
+				
+				System.out.println("AIE");
+			}
+			catch(IOException ioe){
+			
+				System.out.println(ioe.getMessage());
+				
+				System.out.println("IOE");
+			}
+		}
 	}
 }//End thread class
