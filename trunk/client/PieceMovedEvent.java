@@ -1,48 +1,34 @@
 /**
  * Breakthrough Game
- * Date: Apr 29, 2007
+ * Date: May 6, 2007
  * @author Brad Dougherty
+ * @version 1.0 beta
  * Breakthrough Client Piece Moved Event
  */
 
 public class PieceMovedEvent {
-	String movedFrom, movedTo;
+	int team, x, y;
 	
-	public PieceMovedEvent(String from, String to) {
-		this.movedFrom = from;
-		this.movedTo = to;
+	public PieceMovedEvent(int team, int x, int y) {
+		this.team = team;
+		this.x = x;
+		this.y = y;
 	}
 	
-	public String getMovedFrom() {
-		return movedFrom;
+	public int getTeam() {
+		return team;
 	}
 	
-	public String getMovedTo() {
-		return movedTo;
+	public int getX() {
+		return x;
 	}
 	
-	public int getFromTeam() {
-		return Integer.parseInt(movedFrom.substring(0,1));
+	public int getY() {
+		return y;
 	}
 	
-	public int getFromX() {
-		return Integer.parseInt(movedFrom.substring(1,2));
-	}
-	
-	public int getFromY() {
-		return Integer.parseInt(movedFrom.substring(2,3));
-	}
-	
-	public int getToTeam() {
-		return Integer.parseInt(movedTo.substring(0,1));
-	}
-	
-	public int getToX() {
-		return Integer.parseInt(movedTo.substring(1,2));
-	}
-	
-	public int getToY() {
-		return Integer.parseInt(movedTo.substring(2,3));
+	public String getActionCommand() {
+		return team+""+x+""+y;
 	}
 	
 }
