@@ -1,6 +1,6 @@
 /**
  * Breakthrough Game
- * Date: May 6, 2007
+ * Date: May 7, 2007
  * @author Brad Dougherty
  * @version 1.0 beta
  * Breakthrough Client Game Manager
@@ -135,7 +135,7 @@ public class GameManager {
 	 * Piece Selected
 	 * @param info The formatted string of the piece
 	 */
-	public void pieceSelected(String info) {
+	public synchronized void pieceSelected(String info) {
 		try {
 			
 			if (myTurn) {
@@ -188,7 +188,7 @@ public class GameManager {
 		
 	}
 	
-	private void setMyTurn(boolean turn) {
+	private synchronized void setMyTurn(boolean turn) {
 		if (turn) {
 			fireStatusChange("statusYourTurn");
 			this.myTurn = true;
@@ -238,11 +238,10 @@ public class GameManager {
 	 * Connection beginning - tells the client that the connection attempt is beginning
 	 */
 	private void fireConnectionBeginning() {
-		ConnectionBeginningEvent event = new ConnectionBeginningEvent();
 		Iterator iter = new ArrayList<BreakthroughListener>(listeners).iterator();
         while (iter.hasNext()) {
             BreakthroughListener listener = (BreakthroughListener) iter.next();
-            listener.connectionBeginning(event);
+            listener.connectionBeginning();
         }
 	}
 	
