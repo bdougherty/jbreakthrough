@@ -9,7 +9,7 @@
 public interface BreakthroughListener {
 	
 	public void statusChanged(StatusChangeEvent e);
-	public void connectionBeginning(ConnectionBeginningEvent e);
+	public void connectionBeginning();
 	public void connectionError(ConnectionErrorEvent e);
 	public void connected(ConnectionEvent e);
 	public void pieceMoved(PieceMovedEvent e);
