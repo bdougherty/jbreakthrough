@@ -6,26 +6,44 @@
  * Breakthrough Client Application
  */
 
-import javax.swing.*;
-import java.awt.*;
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.JComboBox;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JTextField;
+import javax.swing.SwingUtilities;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.ComponentOrientation;
+import java.awt.GridLayout;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
 import java.util.Locale;
 import java.util.ResourceBundle;
 
 public class Breakthrough extends JFrame implements BreakthroughListener {
-	JFrame configFrame;
-	JTextField addressTF, nameTF;
-	JComboBox piecesCB;
-	String[] pieces = {"Default", "Halo", "Custom"};
-	JLabel statusLBL, infoLBL, welcomeLBL;
-	JButton [][] button = new JButton[8][8];
-	JButton connectButton;
-	int team;
-	String myName, opponentName, response;
-	ImageIcon titleICO, team1ICO, team2ICO;
-	GameManager gameManager;
-	static Breakthrough breakthrough;
+	private static Breakthrough breakthrough;
+	private GameManager gameManager;
+	private ImageIcon team1ICO;
+	private ImageIcon team2ICO;
+	private ImageIcon titleICO;
+	private int team;
+	private JButton [][] button;
+	private JButton connectButton;
+	private JComboBox piecesCB;
+	private JFrame configFrame;
+	private JLabel infoLBL;
+	private JLabel statusLBL;
+	private JLabel welcomeLBL;
+	private JTextField addressTF;
+	private JTextField nameTF;
+	private String[] pieces = {"Default", "Halo", "Custom"};
+	private String myName;
+	private String opponentName;
+	private String response;
 	
 	// Internationalization
 	Locale l = Locale.getDefault();
@@ -45,15 +63,16 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 	 * Initializes common components
 	 */
 	private void initComponents() {
+		button = new JButton[8][8];
 		addressTF = new JTextField(10);
 		nameTF = new JTextField(10);
 		piecesCB = new JComboBox(pieces);
 		statusLBL = new JLabel(rb.getString("status")+rb.getString("statusWaitingForInformation"));
 		welcomeLBL = new JLabel();
 		infoLBL = new JLabel("Welcome to Breakthrough!");
-		titleICO = new ImageIcon("title.png");
-		team1ICO = new ImageIcon("team1.jpg");
-		team2ICO = new ImageIcon("team2.jpg");
+		titleICO = new ImageIcon(this.getClass().getResource("title.png"));
+		team1ICO = new ImageIcon(this.getClass().getResource("team1.jpg"));
+		team2ICO = new ImageIcon(this.getClass().getResource("team2.jpg"));
 		connectButton = new JButton(rb.getString("connectButton"));
 	}
 	
@@ -73,6 +92,20 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 		JPanel center = new JPanel(new BorderLayout());
 		JPanel statusPanel = new JPanel();
 		
+		addressTF.addActionListener(
+			new ActionListener() {
+				public void actionPerformed(ActionEvent e) {
+					connectButton_actionPerformed();
+				}
+			}
+		);
+		nameTF.addActionListener(
+			new ActionListener() {
+				public void actionPerformed(ActionEvent e) {
+					connectButton_actionPerformed();
+				}
+			}
+		);
 		connectButton.addActionListener(
 			new ActionListener() {
 				public void actionPerformed(ActionEvent e) {
@@ -157,6 +190,7 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 		add(buttonPanel);
 		
 		setTitle("Breakthrough");
+		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setResizable(false);
 		pack();
 		setLocationRelativeTo(null); // Center on screen
@@ -258,7 +292,7 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 					myName = e.getMyName();
 					opponentName = e.getOpponentName();
 					team = e.getTeam();
-					welcomeLBL.setText(rb.getString("welcomeMessage")+", "+myName+".\n"+rb.getString("playing")+" "+opponentName);
+					welcomeLBL.setText(rb.getString("welcomeMessage")+", "+myName+".\n "+rb.getString("playing")+" "+opponentName);
 					
 					// Layout the game board and hide the config
 					layoutComponents();
@@ -344,9 +378,12 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 						title = "Loser";
 					}
 					
-					int reset = JOptionPane.showConfirmDialog(null, message+"\n\nWould you like to play Breakthrough again?", title, JOptionPane.YES_NO_OPTION, JOptionPane.ÅINFORMATION_MESSAGE);
+					int reset = JOptionPane.showConfirmDialog(null, message+"\nWould you like to play Breakthrough again?", title, JOptionPane.YES_NO_OPTION, JOptionPane.INFORMATION_MESSAGE);
 					if (reset == 0) {
 						reset();
+					}
+					else {
+						System.exit(0);
 					}
 					
 				}
