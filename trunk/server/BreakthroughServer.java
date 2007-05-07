@@ -88,6 +88,8 @@ class ServerThread extends Thread{
 		team1Winner = false;
 		team2Winner = false;
 		
+		boardArray = new int[8][8];
+		
 		//Create readers and writers.
 		try{
 		
@@ -205,6 +207,7 @@ class ServerThread extends Thread{
 						
 				//Get first move.
 				coordinates = team1Input.readLine();
+				System.out.println("Received team 1 move");
 				
 				x1 = Integer.parseInt(coordinates.substring(0,1));
 				
@@ -214,18 +217,21 @@ class ServerThread extends Thread{
 				
 					team1Output.println("-3");
 					team1Output.flush();
+					System.out.println("Sent: -3 valid");
 					firstMoveIsGood = true;
 				}
 				else{
 				
 					team1Output.println("-4");
 					team1Output.flush();
+					System.out.println("Sent: -4 not valid");
 				}
 			}			
 			catch(NumberFormatException nfe){
 			
 				team1Output.println("-4");
 				team1Output.flush();
+				System.out.println("Sent: -4 not valid");
 			}
 			catch(IOException ioe){
 			
@@ -240,6 +246,7 @@ class ServerThread extends Thread{
 			
 				//Get second move.
 				coordinates = team1Input.readLine();
+				System.out.println("Received team 1 move");
 				
 				x2 = Integer.parseInt(coordinates.substring(0,1));
 				
@@ -249,6 +256,7 @@ class ServerThread extends Thread{
 				
 					team1Output.println("-3");
 					team1Output.flush();
+					System.out.println("Sent: -3 valid");
 				}
 				else if(boardArray[x2][y2] == 0){		//Moving to empty space.
 				
