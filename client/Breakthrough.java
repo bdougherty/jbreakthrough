@@ -15,9 +15,7 @@ import java.awt.event.ActionEvent;
 import java.util.Locale;
 import java.util.ResourceBundle;
 import java.io.*;
-import java.awt.*;
 import javax.swing.*;
-import sun.audio.*;
 
 public class Breakthrough extends JFrame implements BreakthroughListener {
 	private static Breakthrough breakthrough;
@@ -36,7 +34,7 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 	private JLabel welcomeLBL;
 	private JTextField addressTF;
 	private JTextField nameTF;
-	private String[] pieces = {"Default", "Halo"};
+	private String[] pieces = {"Default", "Halo", "Mario"};
 	private String myName;
 	private String opponentName;
 	private String response;
@@ -58,13 +56,14 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 	/**
 	 * Constructor - creates the connection and game managers, initializes components, shows config dialog, fills in information
 	 */
-	public Breakthrough(String address, String name) {
+	public Breakthrough(String address, String name, int theme) {
 		gameManager = new GameManager();
 		gameManager.addListener(this);
 		initComponents();
 		layoutConfig();
 		addressTF.setText(address);
 		nameTF.setText(name);
+		piecesCB.setSelectedIndex(theme);
 	}
 	
 	/**
@@ -158,6 +157,8 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 	private void layoutComponents() {
 		JPanel infoPanel = new JPanel(new BorderLayout());
 		JPanel buttonPanel = new JPanel(new GridLayout(8,0));
+		
+		// Player will always be on the left
 		if (team == 2) {
 			buttonPanel.applyComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
 		}
@@ -178,7 +179,7 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 			for (int j = 0; j < button[i].length; j++) {
 				
 				button[i][j] = new JButton();
-				//button[i][j].putClientProperty("JButton.buttonType","toolbar"); // Square buttons on Mac
+				button[i][j].putClientProperty("JButton.buttonType","toolbar"); // Square buttons on Mac
 				buttonPanel.add(button[i][j]);
 				
 				if (j == 0 || j == 1) {
@@ -289,9 +290,7 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 	 */
 	public void connectionBeginning() {
 		// Disable the components
-		addressTF.setEnabled(false);
-		nameTF.setEnabled(false);
-		connectButton.setEnabled(false);
+		setConfigComponentsEnabled(false);
 		statusChanged(new StatusChangeEvent("statusConnecting"));
 	}
 	
@@ -311,9 +310,7 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 		configFrame.setVisible(false);
 		
 		// Reset the enabled status of components
-		addressTF.setEnabled(true);
-		nameTF.setEnabled(true);
-		connectButton.setEnabled(true);
+		setConfigComponentsEnabled(true);
 	}
 	
 	/**
@@ -323,15 +320,21 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 	public void connectionError(final ConnectionErrorEvent e) {
 		// Reset the enabled status of components
 		addressTF.requestFocus();
-		addressTF.setEnabled(true);
-		nameTF.setEnabled(true);
-		connectButton.setEnabled(true);
+		setConfigComponentsEnabled(true);
 		
 		// If the connection was reset
 		if (e.getMessage().equals("Connection reset")) {
 			reset();
 			statusChanged(new StatusChangeEvent("errorConnectionLost",Color.RED));
 		}
+	}
+	
+	private void setConfigComponentsEnabled(boolean enabled) {
+		addressTF.setEnabled(enabled);
+		nameTF.setEnabled(enabled);
+		connectButton.setEnabled(enabled);
+		piecesCB.setEnabled(enabled);
+		soundCK.setEnabled(enabled);
 	}
 	
 	/**
@@ -359,16 +362,28 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 	public void gameOver(final GameOverEvent e) {
 		String message;
 		String title;
-		if (e.isWinner()) {
+		if (e.isError()) {
+			System.out.println("Error");
+			message = opponentName+" "+rb.getString("errorOpponentDisconnected");
+			title = "Opponent Disconnected";
+			
+			// If sound is enabled
+			if (soundCK.isEnabled()) {
+				//playSound("opponentdisconnect.wav");
+			}
+		}
+		else if (e.isWinner()) {
+			System.out.println("You win");
 			message = "You beat "+opponentName+"!";
 			title = "Winner!";
 			
 			// If sound is enabled
 			if (soundCK.isEnabled()) {
-				//playSound("error.wav");
+				//playSound("success.wav");
 			}
 		}
 		else {
+			System.out.println("You lose");
 			message = "Sorry, "+opponentName+" kicked your ass!";
 			title = "Loser";
 			
@@ -378,7 +393,7 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 			}
 		}
 		
-		int reset = JOptionPane.showConfirmDialog(null, message+"\nWould you like to play Breakthrough again?", title, JOptionPane.YES_NO_OPTION, JOptionPane.INFORMATION_MESSAGE);
+		int reset = JOptionPane.showConfirmDialog(null, message+"\n"+rb.getString("playAgain"), title, JOptionPane.YES_NO_OPTION, JOptionPane.INFORMATION_MESSAGE);
 		if (reset == 0) {
 			reset();
 		}
@@ -387,20 +402,16 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 		}
 	}
 	
+	/**
+	 * Play a sound
+	 * @param file The name of the file
+	 */
 	private void playSound(String file) {
 		try {
-			
-			AudioPlayer audioPlayer = AudioPlayer.player;
-			FileInputStream fis = new FileInputStream(new File(file));
-			AudioStream as = new AudioStream(fis); // header plus audio data
-			AudioData ad = as.getData(); // audio data only, no header
-			AudioDataStream audioDataStream = new AudioDataStream(ad);
-			audioPlayer.start();
-			audioDataStream.reset();
+			java.applet.AudioClip clip = java.applet.Applet.newAudioClip(this.getClass().getResource("sounds/"+file));
+			clip.play();
 		}
-		catch (Exception e) {
-			
-		}
+		catch (Exception e) {}
 	}
 	
 	/**
@@ -408,7 +419,7 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 	 */
 	public void reset() {
 		this.setVisible(false);
-		breakthrough = new Breakthrough(addressTF.getText(), myName);
+		breakthrough = new Breakthrough(addressTF.getText(), myName, piecesCB.getSelectedIndex());
 	}
 	
 	/**
