@@ -7,10 +7,28 @@
  */
 
 public class GameOverEvent {
+	boolean isError;
 	boolean winner;
+	String error;
 	
 	public GameOverEvent(boolean winner) {
 		this.winner = winner;
+		this.isError = false;
+		this.error = "";
+	}
+	
+	public GameOverEvent(String error) {
+		this.winner = false;
+		this.isError = true;
+		this.error = error;
+	}
+	
+	public String getError() {
+		return error;
+	}
+	
+	public boolean isError() {
+		return isError;
 	}
 	
 	public boolean isWinner() {
