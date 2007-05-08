@@ -1,5 +1,6 @@
 import java.io.*;
 import java.net.*;
+import java.util.Date;
 
 /**
  *	219- Final Project, Server for Breakthrough Game.
@@ -20,7 +21,7 @@ public class BreakthroughServer {
 		try{
 		
 			ServerSocket ss = new ServerSocket(16789);
-			System.out.println("Breakthrough Server Started...");
+			System.out.println("Breakthrough Server Started at: " + ss.getInetAddress().getLocalHost() + "...");
 			
 			int clientNumber = 1;
 			
@@ -31,26 +32,46 @@ public class BreakthroughServer {
 				Socket sock = ss.accept();
 				System.out.println("Client Connected...");
 				
-				if(clientNumber == 1){
+				try{
 				
-					team1 = sock;
-					clientNumber++;
+					if(clientNumber == 1){
+					
+						team1 = sock;
+						clientNumber++;
+					}
+					else if(clientNumber == 2){
+						
+						team1.setKeepAlive(true);
+						
+						team2 = sock;
+						
+						clientNumber = 1;
+						
+						ServerThread st = new ServerThread(team1, team2);
+						
+						st.start();
+					}
 				}
-				else if(clientNumber == 2){
+				catch(SocketException se){
+		
+					team1.close();
+					team1 = sock;
+					
+					clientNumber = 2;
+				}
+				catch(Exception e){
 				
-					team2 = sock;
-					
-					clientNumber = 1;
-					
-					ServerThread st = new ServerThread(team1, team2);
-					
-					st.start();
+					System.out.println(e.getMessage());
 				}
 			}
 		}
 		catch(IOException ioe){
 		
 			System.out.println(ioe.getMessage());
+		}
+		catch(Exception e){
+				
+			System.out.println(e.getMessage());
 		}
 	}
 	
@@ -67,7 +88,8 @@ public class BreakthroughServer {
  *	Thread class for each client pair.
  */
 class ServerThread extends Thread{
-
+	
+	//Game and Clients.
 	private Socket team1Sock, team2Sock;
 	private String team1Name, team2Name;
 	private BufferedReader team1Input, team2Input;
@@ -75,12 +97,19 @@ class ServerThread extends Thread{
 	private boolean team1Winner, team2Winner;
 	private int[][] boardArray;
 	
+	//Moves.
 	private int x1, y1;		//Coordinates for first piece.		
 	private int x2,y2;		//Coordinates for move to.
 	private boolean firstMoveIsGood;
 	private boolean secondMoveIsGood;
 	private boolean newSelection;
 	private String coordinates;
+	
+	//Logging information.
+	private String ipTeam1, ipTeam2;
+	private Date startTime, finishTime;
+	
+	private boolean disconnected;
 	
 	/**
 	 *	Constructor, sets socket attributes, initializes writers and readers.
@@ -89,6 +118,8 @@ class ServerThread extends Thread{
  	 */
 	public ServerThread(Socket s1, Socket s2){
 	
+		disconnected = false;
+		
 		team1Sock = s1;
 		team2Sock = s2;
 		
@@ -123,7 +154,13 @@ class ServerThread extends Thread{
 	public void run(){
 		
 		try{
-		
+			//Start time.
+			startTime = new Date();
+			
+			//IP Addresses.
+			ipTeam1 = team1Sock.getInetAddress().getHostAddress();
+			ipTeam2 = team2Sock.getInetAddress().getHostAddress();
+			
 			//Accept names.
 			team1Name = team1Input.readLine();
 			team2Name = team2Input.readLine();
@@ -162,13 +199,27 @@ class ServerThread extends Thread{
 			//Players move.
 			while(!team1Winner && !team2Winner){
 				
-				//Team 1 moves.
-				this.team1FirstMove();
+				if(disconnected){
+					
+					return;
+				}
+				else{
+				
+					//Team 1 moves.
+					this.team1FirstMove();
+				}
 				
 				if(!team1Winner && !team2Winner){
-				
-					//Team 2 moves.
-					this.team2FirstMove();
+					
+					if(disconnected){
+					
+						return;
+					}
+					else{
+					
+						//Team 2 moves.
+						this.team2FirstMove();
+					}
 				}
 			}
 			
@@ -194,6 +245,12 @@ class ServerThread extends Thread{
 				System.out.println("Team 2 winner");
 			}
 			
+			//Finish time.
+			finishTime = new Date();
+			
+			//Send log information.
+			logFile();
+			
 			//Close connections.
 			team1Output.close();
 			team1Input.close();
@@ -203,9 +260,49 @@ class ServerThread extends Thread{
 			team2Input.close();
 			team2Sock.close();
 		}
+		catch(SocketException se){
+			
+			disconnected = true;
+			
+			team1Output.println("-5");
+			team1Output.flush();
+				
+			try{
+				//Close connections.
+				team1Output.close();
+				team1Input.close();
+				team1Sock.close();
+			}
+			catch(IOException ioe){
+			
+				System.out.println(ioe.getMessage());
+			}			
+			
+			team2Output.println("-5");
+			team2Output.flush();
+			
+			try{
+				//Close connections.
+				team2Output.close();
+				team2Input.close();
+				team2Sock.close();
+			}
+			catch(IOException ioe){
+			
+				System.out.println(ioe.getMessage());
+			}
+			
+			logFile();
+			
+			return;
+		}
 		catch(IOException ioe){
 		
-			System.out.println(ioe.getMessage());
+			ioe.printStackTrace();
+		}
+		catch(Exception e){
+				
+			System.out.println(e.getMessage());
 		}
 	}
 	
@@ -222,7 +319,7 @@ class ServerThread extends Thread{
 			team1Output.println("0");
 			team1Output.flush();
 		}
-		
+			
 		//FIRST MOVE.
 		while(!firstMoveIsGood){	
 			
@@ -269,9 +366,51 @@ class ServerThread extends Thread{
 				team1Output.println("-4");
 				team1Output.flush();
 			}
+			catch(SocketException se){
+				
+				disconnected = true;
+				
+				team1Output.println("-5");
+				team1Output.flush();
+					
+				try{
+				
+					//Close connections.
+					team1Output.close();
+					team1Input.close();
+					team1Sock.close();
+				}
+				catch(IOException ioe){
+				
+					ioe.printStackTrace();
+				}
+				
+				team2Output.println("-5");
+				team2Output.flush();
+				
+				try{
+				
+					//Close connections.
+					team2Output.close();
+					team2Input.close();
+					team2Sock.close();
+				}
+				catch(IOException ioe){
+					
+					ioe.printStackTrace();
+				}
+				
+				logFile();
+				
+				return;
+			}
 			catch(IOException ioe){
 			
-				System.out.println(ioe.getMessage());
+				ioe.printStackTrace();
+			}
+			catch(Exception e){
+				
+				System.out.println(e.getMessage());
 			}
 		}
 	}
@@ -391,11 +530,53 @@ class ServerThread extends Thread{
 				
 				System.out.println("AIE");
 			}
+			catch(SocketException se){
+				
+				disconnected = true;
+				
+				team1Output.println("-5");
+				team1Output.flush();
+					
+				try{
+				
+					//Close connections.
+					team1Output.close();
+					team1Input.close();
+					team1Sock.close();
+				}
+				catch(IOException ioe){
+				
+					ioe.printStackTrace();
+				}
+				
+				team2Output.println("-5");
+				team2Output.flush();
+				
+				try{
+				
+					//Close connections.
+					team2Output.close();
+					team2Input.close();
+					team2Sock.close();
+				}
+				catch(IOException ioe){
+					
+					ioe.printStackTrace();
+				}
+				
+				logFile();
+				
+				return;
+			}
 			catch(IOException ioe){
 			
 				System.out.println(ioe.getMessage());
 				
 				System.out.println("IOE");
+			}
+			catch(Exception e){
+				
+				System.out.println(e.getMessage());
 			}
 		}
 	}
@@ -460,9 +641,51 @@ class ServerThread extends Thread{
 				team2Output.println("-4");
 				team2Output.flush();
 			}
+			catch(SocketException se){
+				
+				disconnected = true;
+				
+				team1Output.println("-5");
+				team1Output.flush();
+					
+				try{
+				
+					//Close connections.
+					team1Output.close();
+					team1Input.close();
+					team1Sock.close();
+				}
+				catch(IOException ioe){
+				
+					ioe.printStackTrace();
+				}
+				
+				team2Output.println("-5");
+				team2Output.flush();
+				
+				try{
+				
+					//Close connections.
+					team2Output.close();
+					team2Input.close();
+					team2Sock.close();
+				}
+				catch(IOException ioe){
+					
+					ioe.printStackTrace();
+				}
+				
+				logFile();
+				
+				return;
+			}
 			catch(IOException ioe){
 			
-				System.out.println(ioe.getMessage());
+				ioe.printStackTrace();
+			}
+			catch(Exception e){
+				
+				System.out.println(e.getMessage());
 			}
 		}
 	}
@@ -582,12 +805,102 @@ class ServerThread extends Thread{
 				
 				System.out.println("AIE");
 			}
+			catch(SocketException se){
+				
+				disconnected = true;
+				
+				team1Output.println("-5");
+				team1Output.flush();
+					
+				try{
+				
+					//Close connections.
+					team1Output.close();
+					team1Input.close();
+					team1Sock.close();
+				}
+				catch(IOException ioe){
+				
+					ioe.printStackTrace();
+				}
+				
+				team2Output.println("-5");
+				team2Output.flush();
+				
+				try{
+				
+					//Close connections.
+					team2Output.close();
+					team2Input.close();
+					team2Sock.close();
+				}
+				catch(IOException ioe){
+					
+					ioe.printStackTrace();
+				}
+				
+				logFile();
+				
+				return;
+			}
 			catch(IOException ioe){
 			
-				System.out.println(ioe.getMessage());
-				
-				System.out.println("IOE");
+				ioe.printStackTrace();
 			}
+			catch(Exception e){
+				
+				System.out.println(e.getMessage());
+			}
+		}
+	}
+	
+	/**
+	 *	Prints information to log file.
+	 */
+	private synchronized void logFile(){
+	
+		try{
+		
+			PrintWriter logOut = new PrintWriter(new FileWriter("BreakthroughLog.txt",true));
+			
+			if(disconnected){
+			
+				String logInfo = (ipTeam1 + "(" + team1Name + ") VS. " + ipTeam2 + "(" + team2Name + ")\nGame Started: " + startTime + "\nGAME DISCONNECTED\n");
+				
+				logOut.println(logInfo);
+				logOut.flush();
+				
+				logOut.close();
+			}
+			else{
+			
+				//Winner.
+				String winner = "";
+				
+				if(team1Winner){
+				
+					winner = team1Name;
+				}
+				else if(team2Winner){
+				
+					winner = team2Name;
+				}
+				
+				String logInfo = (ipTeam1 + "(" + team1Name + ") VS. " + ipTeam2 + "(" + team2Name + ")\nGame Started: " + startTime + "\nGame Finished: " + finishTime + "\nWinner: " + winner + "\n");
+				
+				logOut.println(logInfo);
+				logOut.flush();
+				
+				logOut.close();
+			}
+		}
+		catch(IOException ioe){
+		
+			ioe.printStackTrace();
+		}
+		catch(Exception e){
+				
+			System.out.println(e.getMessage());
 		}
 	}
 }//End thread class
