@@ -1,7 +1,7 @@
 /**
  * Breakthrough Game
- * Date: May 6, 2007
- * @author Brad Dougherty
+ * Date: May 8, 2007
+ * @author Brad Dougherty, Kevin Harris
  * @version 1.0 beta
  * Breakthrough Client Connection Event
  */
@@ -14,7 +14,7 @@ public class StatusChangeEvent {
 	
 	public StatusChangeEvent(String status) {
 		this.status = status;
-		this.color = Color.LIGHT_GRAY;
+		this.color = null;
 	}
 	
 	public StatusChangeEvent(String status, Color color) {

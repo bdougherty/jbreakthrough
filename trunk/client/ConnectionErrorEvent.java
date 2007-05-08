@@ -1,7 +1,7 @@
 /**
  * Breakthrough Game
- * Date: May 6, 2007
- * @author Brad Dougherty
+ * Date: May 8, 2007
+ * @author Brad Dougherty, Kevin Harris
  * @version 1.0 beta
  * Breakthrough Client Connection Error Event
  */
