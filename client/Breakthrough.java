@@ -1,9 +1,9 @@
 /**
  * Breakthrough Game
- * Date: May 7, 2007
- * @author Brad Dougherty
+ * Date: May 8, 2007
+ * @author Brad Dougherty, Kevin Harris
  * @version 1.0 beta
- * Breakthrough Client Application
+ * Breakthrough Client Application GUI
  */
 
 import java.awt.BorderLayout;
@@ -12,6 +12,8 @@ import java.awt.ComponentOrientation;
 import java.awt.GridLayout;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.util.Locale;
 import java.util.ResourceBundle;
 import java.io.*;
@@ -38,6 +40,8 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 	private String myName;
 	private String opponentName;
 	private String response;
+	
+	private final int BREAKTHROUGH_PORT = 16789;
 	
 	// Internationalization
 	Locale l = Locale.getDefault();
@@ -74,12 +78,41 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 		addressTF = new JTextField(10);
 		nameTF = new JTextField(10);
 		piecesCB = new JComboBox(pieces);
-		soundCK = new JCheckBox("Enable",true);
-		statusLBL = new JLabel(rb.getString("status")+": "+rb.getString("statusWaitingForInformation"));
+		soundCK = new JCheckBox(rb.getString("configEnableSoundsBox"),true);
+		statusLBL = new JLabel(rb.getString("statusPrefix")+": "+rb.getString("statusWaitingForInformation"));
 		welcomeLBL = new JLabel();
-		infoLBL = new JLabel("Welcome to Breakthrough!");
+		infoLBL = new JLabel(rb.getString("welcomeMessage"));
 		titleICO = new ImageIcon(this.getClass().getResource("images/title.png"));
-		connectButton = new JButton(rb.getString("connectButton"));
+		connectButton = new JButton(rb.getString("configConnectButtonLabel"));
+		
+	}
+	
+	private JMenuBar getMyMenuBar() {
+		JMenuBar menuBar = new JMenuBar();
+		JMenu helpMenu = new JMenu(rb.getString("helpMenu"));
+		JMenuItem rules = new JMenuItem(rb.getString("helpMenuRules"));
+		helpMenu.add(rules);
+		menuBar.add(helpMenu);
+		
+		rules.addActionListener(
+			new ActionListener() {
+				public void actionPerformed(ActionEvent ae) {
+					
+					JTextArea text = new JTextArea(10,40);
+					JScrollPane scroll = new JScrollPane(text);
+					text.append(rb.getString("rules"));
+					text.setLineWrap(true);
+					text.setWrapStyleWord(true);
+					text.setCaretPosition(0);
+					text.setEditable(false);
+					
+					JOptionPane.showMessageDialog(null, scroll,rb.getString("rulesDialogTitle"),JOptionPane.INFORMATION_MESSAGE);
+					
+				}
+			}
+		);
+		
+		return menuBar;
 	}
 	
 	/**
@@ -87,10 +120,10 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 	 */
 	private void layoutConfig() {
 		configFrame = new JFrame();
-		JLabel addressLabel = new JLabel(rb.getString("serverAddress"));
-		JLabel nameLabel = new JLabel(rb.getString("yourName"));
-		JLabel piecesLabel = new JLabel(rb.getString("typeOfPieces"));
-		JLabel soundLabel = new JLabel(rb.getString("sounds"));
+		JLabel addressLabel = new JLabel(rb.getString("configServerAddressLabel")+":");
+		JLabel nameLabel = new JLabel(rb.getString("configYourNameLabel")+":");
+		JLabel piecesLabel = new JLabel(rb.getString("configTypeOfPiecesLabel")+":");
+		JLabel soundLabel = new JLabel(rb.getString("configSoundsLabel")+":");
 		JLabel titleLabel = new JLabel(titleICO);
 		JPanel imagePanel = new JPanel();
 		JPanel optionsPanel = new JPanel(new GridLayout(0, 2, 10, 10));
@@ -98,6 +131,7 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 		JPanel connectPanel = new JPanel();
 		JPanel center = new JPanel(new BorderLayout());
 		JPanel statusPanel = new JPanel();
+		JPanel statusLabelPanel = new JPanel();
 		
 		addressTF.addActionListener(
 			new ActionListener() {
@@ -135,8 +169,10 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 		center.add(fieldsPanel, BorderLayout.NORTH);
 		center.add(connectPanel, BorderLayout.CENTER);
 		center.add(new JPanel(), BorderLayout.SOUTH);
+		statusLabelPanel.setBackground(Color.LIGHT_GRAY);
+		statusLabelPanel.add(statusLBL);
 		statusPanel.setBackground(Color.LIGHT_GRAY);
-		statusPanel.add(statusLBL);
+		statusPanel.add(statusLabelPanel);
 		
 		configFrame.add(imagePanel, BorderLayout.NORTH);
 		configFrame.add(center);
@@ -144,6 +180,9 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 		
 		configFrame.setTitle("Breakthrough");
 		configFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		if (System.getProperty("mrj.version") != null) {
+			configFrame.setJMenuBar(getMyMenuBar());
+		}
 		configFrame.setResizable(false);
 		configFrame.setBackground(Color.WHITE);
 		configFrame.pack();
@@ -155,8 +194,9 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 	 * Creates the main window
 	 */
 	private void layoutComponents() {
-		JPanel infoPanel = new JPanel(new BorderLayout());
+		JPanel welcomePanel = new JPanel();
 		JPanel buttonPanel = new JPanel(new GridLayout(8,0));
+		JPanel infoPanel = new JPanel();
 		
 		// Player will always be on the left
 		if (team == 2) {
@@ -207,13 +247,19 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 			}
 		}
 		
-		infoPanel.add(welcomeLBL, BorderLayout.NORTH);
-		infoPanel.add(statusLBL, BorderLayout.SOUTH);
-		add(infoPanel, BorderLayout.NORTH);
+		welcomePanel.add(welcomeLBL);
+		infoPanel.add(statusLBL);
+		add(welcomePanel, BorderLayout.NORTH);
 		add(buttonPanel);
-		
+		add(infoPanel, BorderLayout.SOUTH);
+		setJMenuBar(getMyMenuBar());
 		setTitle("Breakthrough");
-		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+		addWindowListener(new WindowAdapter() {
+			public void windowClosing(WindowEvent event) {
+				gameManager.close();
+			}
+		});
 		setResizable(false);
 		pack();
 		setLocationRelativeTo(null); // Center on screen
@@ -234,7 +280,7 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 					nameTF.requestFocus();
 				}
 				else {
-					gameManager.connect(addressTF.getText(), nameTF.getText());
+					gameManager.connect(addressTF.getText(), BREAKTHROUGH_PORT, nameTF.getText());
 				}
 				
 			}
@@ -261,10 +307,8 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 		SwingUtilities.invokeLater(
 			new Runnable() {
 				public void run() {
-					final Color prevColor = statusLBL.getParent().getBackground();
-
 					// Change the message and color
-					statusLBL.setText(rb.getString("status")+": "+rb.getString(e.getStatus()));
+					statusLBL.setText(rb.getString("statusPrefix")+": "+rb.getString(e.getStatus()));
 					statusLBL.getParent().setBackground(e.getColor());
 
 					// Change the color back after 2 seconds
@@ -275,7 +319,14 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 									Thread.sleep(1000);
 								}
 								catch (InterruptedException ie) {}
-								statusLBL.getParent().setBackground(prevColor);
+								
+								// Set back to correct color
+								if (configFrame.isVisible()) {
+									statusLBL.getParent().setBackground(Color.LIGHT_GRAY);
+								}
+								else {
+									statusLBL.getParent().setBackground(null);
+								}
 							}
 						}
 					);
@@ -303,7 +354,7 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 		myName = e.getMyName();
 		opponentName = e.getOpponentName();
 		team = e.getTeam();
-		welcomeLBL.setText(rb.getString("welcomeMessage")+", "+myName+".\n "+rb.getString("playing")+" "+opponentName);
+		welcomeLBL.setText(rb.getString("welcomeMessage")+", "+myName+"! "+rb.getString("playing")+" "+opponentName+".");
 		
 		// Layout the game board and hide the config
 		layoutComponents();
@@ -368,27 +419,27 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 			title = "Opponent Disconnected";
 			
 			// If sound is enabled
-			if (soundCK.isEnabled()) {
+			if (soundCK.isSelected()) {
 				//playSound("opponentdisconnect.wav");
 			}
 		}
 		else if (e.isWinner()) {
 			System.out.println("You win");
-			message = "You beat "+opponentName+"!";
-			title = "Winner!";
+			message = rb.getString("beat")+" "+opponentName+"!";
+			title = rb.getString("winner")+"!";
 			
 			// If sound is enabled
-			if (soundCK.isEnabled()) {
+			if (soundCK.isSelected()) {
 				//playSound("success.wav");
 			}
 		}
 		else {
 			System.out.println("You lose");
 			message = "Sorry, "+opponentName+" kicked your ass!";
-			title = "Loser";
+			title = rb.getString("loser");
 			
 			// If sound is enabled
-			if (soundCK.isEnabled()) {
+			if (soundCK.isSelected()) {
 				playSound("error.wav");
 			}
 		}
@@ -427,7 +478,12 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 	 * @param args The command line arguments
 	 */
 	public static void main(String[] args) {
+		
+		// Use mac menu bar
+		System.setProperty("apple.laf.useScreenMenuBar","true");
+		
 		breakthrough = new Breakthrough();
+		
 	}
 	
 }
