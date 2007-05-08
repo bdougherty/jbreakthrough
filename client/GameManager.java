@@ -104,6 +104,8 @@ public class GameManager {
 					}
 					else if (parsed == -5) {
 						System.out.println("Response: Opponent disconnected");
+						setMyTurn(false);
+						doLoop = false;
 					}
 					
 				}
@@ -111,9 +113,14 @@ public class GameManager {
 			}
 			while (doLoop);
 			
+			System.out.println("Quit loop");
+			
 			// When the game ends
 			if (team + parsed == 0) {
 				fireGameOver(true);
+			}
+			else if (parsed == -5) {
+				fireGameOver("errorOpponentDisconnected");
 			}
 			else {
 				fireGameOver(false);
@@ -294,6 +301,15 @@ public class GameManager {
 	 */
 	private void fireGameOver(boolean won) {
 		GameOverEvent event = new GameOverEvent(won);
+		Iterator iter = new ArrayList<BreakthroughListener>(listeners).iterator();
+        while (iter.hasNext()) {
+            BreakthroughListener listener = (BreakthroughListener) iter.next();
+            listener.gameOver(event);
+        }
+	}
+	
+	private void fireGameOver(String error) {
+		GameOverEvent event = new GameOverEvent(error);
 		Iterator iter = new ArrayList<BreakthroughListener>(listeners).iterator();
         while (iter.hasNext()) {
             BreakthroughListener listener = (BreakthroughListener) iter.next();
