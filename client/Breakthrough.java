@@ -1,6 +1,6 @@
 /**
  * Breakthrough Game
- * Date: May 8, 2007
+ * Date: May 9, 2007
  * @author Brad Dougherty, Kevin Harris
  * @version 1.0 beta
  * Breakthrough Client Application GUI
@@ -257,7 +257,7 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 		setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
 		addWindowListener(new WindowAdapter() {
 			public void windowClosing(WindowEvent event) {
-				gameManager.close();
+				System.exit(0);
 			}
 		});
 		setResizable(false);
@@ -420,7 +420,7 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 			
 			// If sound is enabled
 			if (soundCK.isSelected()) {
-				//playSound("opponentdisconnect.wav");
+				playSound("opponentdisconnect.wav");
 			}
 		}
 		else if (e.isWinner()) {
@@ -430,7 +430,7 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 			
 			// If sound is enabled
 			if (soundCK.isSelected()) {
-				//playSound("success.wav");
+				playSound("success.wav");
 			}
 		}
 		else {

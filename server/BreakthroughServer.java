@@ -61,7 +61,7 @@ public class BreakthroughServer {
 				}
 				catch(Exception e){
 				
-					System.out.println(e.getMessage());
+					e.printStackTrace();
 				}
 			}
 		}
@@ -302,7 +302,9 @@ class ServerThread extends Thread{
 		}
 		catch(Exception e){
 				
-			System.out.println(e.getMessage());
+			e.printStackTrace();
+			disconnected = true;
+			return;
 		}
 	}
 	
@@ -410,7 +412,9 @@ class ServerThread extends Thread{
 			}
 			catch(Exception e){
 				
-				System.out.println(e.getMessage());
+				e.printStackTrace();
+				disconnected = true;
+				return;
 			}
 		}
 	}
@@ -576,7 +580,9 @@ class ServerThread extends Thread{
 			}
 			catch(Exception e){
 				
-				System.out.println(e.getMessage());
+				e.printStackTrace();
+				disconnected = true;
+				return;
 			}
 		}
 	}
@@ -685,7 +691,9 @@ class ServerThread extends Thread{
 			}
 			catch(Exception e){
 				
-				System.out.println(e.getMessage());
+				e.printStackTrace();
+				disconnected = true;
+				return;
 			}
 		}
 	}
@@ -849,7 +857,9 @@ class ServerThread extends Thread{
 			}
 			catch(Exception e){
 				
-				System.out.println(e.getMessage());
+				e.printStackTrace();
+				disconnected = true;
+				return;
 			}
 		}
 	}
