@@ -1,6 +1,6 @@
 /**
  * Breakthrough Game
- * Date: May 8, 2007
+ * Date: May 9, 2007
  * @author Brad Dougherty, Kevin Harris
  * @version 1.0 beta
  * Breakthrough Client Game Manager
@@ -31,18 +31,6 @@ public class GameManager {
 	public void addListener(BreakthroughListener listener){
         listeners.add(listener);
     }
-	
-	/**
-	 * Close - properly closes the socket before exiting the program
-	 */
-	public void close() {
-		try {
-			sock.close();
-			System.exit(0);
-		}
-		catch (IOException e) { 
-		}
-	}
 	
 	/**
 	 * Connect method - connects to the server, then loops for input
