@@ -30,7 +30,7 @@ public class BreakthroughServer {
 				
 				System.out.println("Waiting for clients...");
 				Socket sock = ss.accept();
-				System.out.println("Client Connected...");
+				System.out.println(sock.getInetAddress().getHostAddress() + " Connected...");
 				
 				try{
 				
@@ -260,7 +260,7 @@ class ServerThread extends Thread{
 			team2Input.close();
 			team2Sock.close();
 		}
-		catch(SocketException se){
+		catch(SocketException se){		//If Client disconnects.
 			
 			disconnected = true;
 			
@@ -290,6 +290,8 @@ class ServerThread extends Thread{
 			catch(IOException ioe){
 			
 				System.out.println(ioe.getMessage());
+				disconnected = true;
+				return;
 			}
 			
 			logFile();
@@ -299,6 +301,8 @@ class ServerThread extends Thread{
 		catch(IOException ioe){
 		
 			ioe.printStackTrace();
+			disconnected = true;
+			return;
 		}
 		catch(Exception e){
 				
@@ -332,11 +336,25 @@ class ServerThread extends Thread{
 					//Get first move.
 					coordinates = team1Input.readLine();
 					
-					System.out.println("Got first coord. from P1");
+					//System.out.println("Got first coord. from P1");
 					
-					x1 = Integer.parseInt(coordinates.substring(0,1));
+					try{
 					
-					y1 = Integer.parseInt(coordinates.substring(1,2));
+						x1 = Integer.parseInt(coordinates.substring(0,1));
+					
+						y1 = Integer.parseInt(coordinates.substring(1,2));
+					}
+					catch(NullPointerException npe){
+											
+						if(team1Sock.isConnected()){
+							
+							throw new SocketException();
+						}
+						else{
+						
+							npe.printStackTrace();
+						}
+					}
 				}
 				else if(newSelection){
 				
@@ -345,6 +363,7 @@ class ServerThread extends Thread{
 					
 					firstMoveIsGood = true;
 					this.team1SecondMove();
+					break;
 				}
 				
 				if(boardArray[x1][y1] == 1){
@@ -353,7 +372,7 @@ class ServerThread extends Thread{
 					team1Output.flush();
 					firstMoveIsGood = true;
 					
-					System.out.println("Sent valid first coord to P1");
+					//System.out.println("Sent valid first coord to P1");
 					
 					this.team1SecondMove();
 				}
@@ -368,7 +387,7 @@ class ServerThread extends Thread{
 				team1Output.println("-4");
 				team1Output.flush();
 			}
-			catch(SocketException se){
+			catch(SocketException se){		//If Client disconnects.
 				
 				disconnected = true;
 				
@@ -401,7 +420,7 @@ class ServerThread extends Thread{
 					
 					ioe.printStackTrace();
 				}
-				
+				finishTime = new Date();
 				logFile();
 				
 				return;
@@ -409,6 +428,9 @@ class ServerThread extends Thread{
 			catch(IOException ioe){
 			
 				ioe.printStackTrace();
+			
+				disconnected = true;
+				return;
 			}
 			catch(Exception e){
 				
@@ -434,14 +456,29 @@ class ServerThread extends Thread{
 				//Get second move.
 				coordinates = team1Input.readLine();
 				
-				System.out.println("Got 2nd coord from P1.");
+				//System.out.println("Got 2nd coord from P1.");
 				
-				x2 = Integer.parseInt(coordinates.substring(0,1));
+				try{
 				
-				y2 = Integer.parseInt(coordinates.substring(1,2));
+					x2 = Integer.parseInt(coordinates.substring(0,1));
+				
+					y2 = Integer.parseInt(coordinates.substring(1,2));
+				}
+				catch(NullPointerException npe){
+						
+					if(team1Sock.isConnected()){
+						
+						throw new SocketException();
+					}
+					else{
+						
+						npe.printStackTrace();
+					}
+				}
 				
 				if(boardArray[x2][y2] == 1){		//Selects new piece.
-					System.out.println("equals 1");
+					
+					//System.out.println("equals 1");
 					team1Output.println("-3");
 					team1Output.flush();
 					
@@ -449,7 +486,8 @@ class ServerThread extends Thread{
 					this.team1FirstMove();
 				}
 				else if(boardArray[x2][y2] == 0){		//Moving to empty space.
-					System.out.println("equals 0");
+					
+					//System.out.println("equals 0");
 					if(x1 + 1 == x2){		//Check for movement right one space.
 					
 						if(y1 + 1 == y2 || y1 - 1 == y2 || y1 == y2){		//Check for valid diagonal.
@@ -460,7 +498,7 @@ class ServerThread extends Thread{
 							team2Output.println("0" + x1 + y1 + "," + "1" + x2 + y2);
 							team2Output.flush();
 							
-							System.out.println("Sent valid 2nd coord to P1.");
+							//System.out.println("Sent valid 2nd coord to P1.");
 							
 							boardArray[x1][y1] = 0;
 							boardArray[x2][y2] = 1;
@@ -479,7 +517,7 @@ class ServerThread extends Thread{
 							team1Output.println("-4");
 							team1Output.flush();
 							
-							System.out.println("Sent invalid 2nd coord to P1.");
+							//System.out.println("Sent invalid 2nd coord to P1.");
 						}
 					}
 					else{
@@ -489,7 +527,8 @@ class ServerThread extends Thread{
 					}
 				}
 				else if(boardArray[x2][y2] == 2){		//Moving to an enemy space.
-					System.out.println("equals 2");
+				
+					//System.out.println("equals 2");
 					if(x1 + 1 == x2){		//Check for movement right one space.
 					
 						if(y1 + 1 == y2 || y1 - 1 == y2){		//Check for valid diagonal attack.
@@ -524,17 +563,13 @@ class ServerThread extends Thread{
 			
 				team1Output.println("-4");
 				team1Output.flush();
-				
-				System.out.println("NFE.");
 			}
 			catch(ArrayIndexOutOfBoundsException aie){
 			
 				team1Output.println("-4");
 				team1Output.flush();
-				
-				System.out.println("AIE");
 			}
-			catch(SocketException se){
+			catch(SocketException se){		//If Client disconnects.
 				
 				disconnected = true;
 				
@@ -566,8 +601,10 @@ class ServerThread extends Thread{
 				catch(IOException ioe){
 					
 					ioe.printStackTrace();
+					disconnected = true;
+					return;
 				}
-				
+				finishTime = new Date();
 				logFile();
 				
 				return;
@@ -575,8 +612,6 @@ class ServerThread extends Thread{
 			catch(IOException ioe){
 			
 				System.out.println(ioe.getMessage());
-				
-				System.out.println("IOE");
 			}
 			catch(Exception e){
 				
@@ -611,11 +646,25 @@ class ServerThread extends Thread{
 					//Get first move.
 					coordinates = team2Input.readLine();
 					
-					System.out.println("Got first coord from P2.");
+					//System.out.println("Got first coord from P2.");
 					
-					x1 = Integer.parseInt(coordinates.substring(0,1));
+					try{
 					
-					y1 = Integer.parseInt(coordinates.substring(1,2));
+						x1 = Integer.parseInt(coordinates.substring(0,1));
+					
+						y1 = Integer.parseInt(coordinates.substring(1,2));
+					}
+					catch(NullPointerException npe){
+						
+						if(team1Sock.isConnected()){
+							
+							throw new SocketException();
+						}
+						else{
+						
+							npe.printStackTrace();
+						}
+					}
 				}
 				else if(newSelection){
 				
@@ -624,6 +673,7 @@ class ServerThread extends Thread{
 					
 					firstMoveIsGood = true;
 					this.team2SecondMove();
+					break;
 				}
 				
 				if(boardArray[x1][y1] == 2){
@@ -632,7 +682,7 @@ class ServerThread extends Thread{
 					team2Output.flush();
 					firstMoveIsGood = true;
 					
-					System.out.println("Sent valid first coord to P2.");
+					//System.out.println("Sent valid first coord to P2.");
 					
 					this.team2SecondMove();
 				}
@@ -647,7 +697,7 @@ class ServerThread extends Thread{
 				team2Output.println("-4");
 				team2Output.flush();
 			}
-			catch(SocketException se){
+			catch(SocketException se){		//If Client disconnects.
 				
 				disconnected = true;
 				
@@ -679,8 +729,9 @@ class ServerThread extends Thread{
 				catch(IOException ioe){
 					
 					ioe.printStackTrace();
+					
 				}
-				
+				finishTime = new Date();
 				logFile();
 				
 				return;
@@ -688,6 +739,8 @@ class ServerThread extends Thread{
 			catch(IOException ioe){
 			
 				ioe.printStackTrace();
+				disconnected = true;
+				return;
 			}
 			catch(Exception e){
 				
@@ -713,14 +766,28 @@ class ServerThread extends Thread{
 				//Get second move.
 				coordinates = team2Input.readLine();
 				
-				System.out.println("Got 2nd coord from P2.");
+				//System.out.println("Got 2nd coord from P2.");
 				
-				x2 = Integer.parseInt(coordinates.substring(0,1));
+				try{
 				
-				y2 = Integer.parseInt(coordinates.substring(1,2));
+					x2 = Integer.parseInt(coordinates.substring(0,1));
+					
+					y2 = Integer.parseInt(coordinates.substring(1,2));
+				}
+				catch(NullPointerException npe){
+											
+					if(team1Sock.isConnected()){
+						
+						throw new SocketException();
+					}
+					else{
+						
+						npe.printStackTrace();
+					}
+				}
 				
 				if(boardArray[x2][y2] == 2){		//Selects new piece.
-					System.out.println("equals 2");
+					//System.out.println("equals 2");
 					team2Output.println("-3");
 					team2Output.flush();
 					
@@ -728,7 +795,8 @@ class ServerThread extends Thread{
 					this.team2FirstMove();
 				}
 				else if(boardArray[x2][y2] == 0){		//Moving to empty space.
-					System.out.println("equals 0");
+					
+					//System.out.println("equals 0");
 					if(x1 - 1 == x2){		//Check for movement left one space.
 					
 						if(y1 + 1 == y2 || y1 - 1 == y2 || y1 == y2){		//Check for valid diagonal.
@@ -739,7 +807,7 @@ class ServerThread extends Thread{
 							team2Output.println("0" + x1 + y1 + "," + "2" + x2 + y2);
 							team2Output.flush();
 							
-							System.out.println("Sent valid 2nd coord to P2.");
+							//System.out.println("Sent valid 2nd coord to P2.");
 							
 							boardArray[x1][y1] = 0;
 							boardArray[x2][y2] = 2;
@@ -758,7 +826,7 @@ class ServerThread extends Thread{
 							team2Output.println("-4");
 							team2Output.flush();
 							
-							System.out.println("Sent invalid 2nd coord to P2.");
+							//System.out.println("Sent invalid 2nd coord to P2.");
 						}
 					}
 					else{
@@ -768,7 +836,9 @@ class ServerThread extends Thread{
 					}
 				}
 				else if(boardArray[x2][y2] == 1){		//Moving to an enemy space.
-					System.out.println("equals 1");
+				
+					//System.out.println("equals 1");
+					
 					if(x1 - 1 == x2){		//Check for movement left one space.
 					
 						if(y1 + 1 == y2 || y1 - 1 == y2){		//Check for valid diagonal attack.
@@ -804,16 +874,14 @@ class ServerThread extends Thread{
 				team2Output.println("-4");
 				team2Output.flush();
 				
-				System.out.println("NFE.");
 			}
 			catch(ArrayIndexOutOfBoundsException aie){
 			
 				team2Output.println("-4");
 				team2Output.flush();
 				
-				System.out.println("AIE");
 			}
-			catch(SocketException se){
+			catch(SocketException se){		//If Client disconnects.
 				
 				disconnected = true;
 				
@@ -846,7 +914,7 @@ class ServerThread extends Thread{
 					
 					ioe.printStackTrace();
 				}
-				
+				finishTime = new Date();
 				logFile();
 				
 				return;
@@ -854,6 +922,8 @@ class ServerThread extends Thread{
 			catch(IOException ioe){
 			
 				ioe.printStackTrace();
+				disconnected = true;
+				return;
 			}
 			catch(Exception e){
 				
@@ -873,16 +943,17 @@ class ServerThread extends Thread{
 		
 			PrintWriter logOut = new PrintWriter(new FileWriter("BreakthroughLog.txt",true));
 			
-			if(disconnected){
-			
-				String logInfo = (ipTeam1 + "(" + team1Name + ") VS. " + ipTeam2 + "(" + team2Name + ")\nGame Started: " + startTime + "\nGAME DISCONNECTED\n");
-				
-				logOut.println(logInfo);
+			if(disconnected){		//Log if game disconnects.
+						
+				logOut.println(ipTeam1 + "(" + team1Name + ") VS. " + ipTeam2 + "(" + team2Name + ")");
+				logOut.println("Game Started: " + startTime);
+				logOut.println("Game Finished: " + finishTime);
+				logOut.println("GAME DISCONNECTED");
+				logOut.println("");
 				logOut.flush();
-				
 				logOut.close();
 			}
-			else{
+			else{		//Log if winner is declared.
 			
 				//Winner.
 				String winner = "";
@@ -896,11 +967,12 @@ class ServerThread extends Thread{
 					winner = team2Name;
 				}
 				
-				String logInfo = (ipTeam1 + "(" + team1Name + ") VS. " + ipTeam2 + "(" + team2Name + ")\nGame Started: " + startTime + "\nGame Finished: " + finishTime + "\nWinner: " + winner + "\n");
-				
-				logOut.println(logInfo);
+				logOut.println(ipTeam1 + "(" + team1Name + ") VS. " + ipTeam2 + "(" + team2Name + ")");
+				logOut.println("Game Started: " + startTime);
+				logOut.println("Game Finished: " + finishTime);
+				logOut.println("Winner: " + winner);
+				logOut.println("");
 				logOut.flush();
-				
 				logOut.close();
 			}
 		}
