@@ -1,8 +1,9 @@
 /**
- * Breakthrough Game
- * Date: May 9, 2007
+ * Breakthrough Game<br />
+ * RIT 4002-219 Final Project<br />
+ * Date: May 10, 2007
  * @author Brad Dougherty, Kevin Harris
- * @version 1.0 beta
+ * @version 1.0
  * Breakthrough Client Game Manager
  */
 
@@ -13,24 +14,58 @@ import java.util.ArrayList;
 import java.util.Iterator;
 
 public class GameManager {
-	private ArrayList<BreakthroughListener> listeners = new ArrayList<BreakthroughListener>();
+	private boolean connected = false;
+	private boolean debugMode;
+	private boolean firstPieceSent = false;
 	private BufferedReader in;
+	private ArrayList<BreakthroughListener> listeners = new ArrayList<BreakthroughListener>();
+	private boolean myTurn = false;
 	private BufferedWriter out;
-	private final Color ERROR_COLOR = new Color(190,2,2);
-	private final Color ALERT_COLOR = new Color(0,161,81);
+	private boolean secondPieceSent = false;
 	private Socket sock;
 	private int team;
-	private boolean myTurn = false;
-	private boolean firstPieceSent = false;
-	private boolean secondPieceSent = false;
+	
+	/**
+	 * Default constructor
+	 */
+	public GameManager() {
+		this.debugMode = false;
+	}
+	
+	/**
+	 * Constructor - sets debugMode
+	 * @param debugMode Whether or not to enable debugging mode
+	 */
+	public GameManager(boolean debugMode) {
+		this.debugMode = debugMode;
+		if (debugMode) {
+			System.out.println("OPERATING IN DEBUG MODE\n");
+			setMyTurn(true);
+		}
+	}
 	
 	/**
 	 * Add Listener - adds a listener
 	 * @param listener The listener to add
 	 */
-	public void addListener(BreakthroughListener listener){
+	public void addListener(BreakthroughListener listener) {
         listeners.add(listener);
     }
+	
+	/**
+	 * Close socket - tries to close the socket
+	 */
+	public void closeSocket() {
+		try {
+			sock.close();
+			connected = false;
+			if (debugMode) {
+				System.out.println("Socket closed.");
+			}
+		}
+		catch (IOException ioe) {}
+		catch (Exception e) {}
+	}
 	
 	/**
 	 * Connect method - connects to the server, then loops for input
@@ -43,27 +78,33 @@ public class GameManager {
 			// Connect to the server
 			fireConnectionBeginning();
 			sock = new Socket(address, port);
+			connected = true;
 
 			// Set up the reader and writer
 			in = new BufferedReader(new InputStreamReader(sock.getInputStream()));
 			out = new BufferedWriter(new OutputStreamWriter(sock.getOutputStream()));
 
 			// Send name to server
-			fireStatusChange("statusSendingNameToServer");
+			fireStatusChange("statusSendingNameToServer", StatusChangeEvent.CONFIG_COLOR);
 			out.write(name);
 			out.newLine();
 			out.flush();
-			fireStatusChange("statusWaitingForOpponent");
+			fireStatusChange("statusWaitingForOpponent", StatusChangeEvent.CONFIG_COLOR);
 
 			// Recieve back opponents information
 			String response = in.readLine();
-			fireStatusChange("statusRecievedOpponentName");
+			fireStatusChange("statusRecievedOpponentName", StatusChangeEvent.CONFIG_COLOR);
 
 			// Parse information
 			team = Integer.parseInt(response.substring(0,1));
 			String opponentName = response.substring(2,response.length());
 			String myName = name;
-			fireStatusChange("statusSettingUpGame");
+			if (debugMode) {
+				System.out.println("My name: "+name);
+				System.out.println("Opponent's name: "+opponentName);
+				System.out.println("Team #"+team);
+			}
+			fireStatusChange("statusSettingUpGame", StatusChangeEvent.CONFIG_COLOR);
 			fireConnected(team, myName, opponentName);
 			
 			/* Server response loop
@@ -78,8 +119,10 @@ public class GameManager {
 			do {
 				
 				response = in.readLine();
-				System.out.println("\nLength of response: "+response.length());
-				System.out.println("Raw response: "+response);
+				if (debugMode) {
+					System.out.println("\nResponse from server: "+response);
+					System.out.println("Length of response: "+response.length());
+				}
 				
 				if (response.length() > 2) {
 					
@@ -90,7 +133,9 @@ public class GameManager {
 					 * 
 					 */
 					
-					System.out.println("Response: move piece");
+					if (debugMode) {
+						System.out.println("Response: move piece");
+					}
 					setMyTurn(false);
 					movePiece(response.substring(0,3), response.substring(4,7));
 					firstPieceSent = false;
@@ -112,23 +157,33 @@ public class GameManager {
 					parsed = Integer.parseInt(response);
 					
 					if (parsed == 0) {
-						System.out.println("Response: your turn");
+						if (debugMode) {
+							System.out.println("Response: your turn");
+						}
 						setMyTurn(true);
 					}
 					else if (parsed == -1) {
-						System.out.println("Response: Team 1 wins!");
+						if (debugMode) {
+							System.out.println("Response: Team 1 wins!");
+						}
 						doLoop = false;
 					}
 					else if (parsed == -2) {
-						System.out.println("Response: Team 2 wins!");
+						if (debugMode) {
+							System.out.println("Response: Team 2 wins!");
+						}
 						doLoop = false;
 					}
 					else if (parsed == -3) {
-						System.out.println("Response: Valid selection");
+						if (debugMode) {
+							System.out.println("Response: Valid selection");
+						}
 					}
 					else if (parsed == -4) {
-						System.out.println("Response: Invalid move");
-						fireStatusChange("errorMoveInvalid", ERROR_COLOR);
+						if (debugMode) {
+							System.out.println("Response: Invalid move");
+						}
+						fireStatusChange("errorMoveInvalid", StatusChangeEvent.ERROR_COLOR);
 						if (firstPieceSent && secondPieceSent) {
 							secondPieceSent = false;
 						}
@@ -137,7 +192,9 @@ public class GameManager {
 						}
 					}
 					else if (parsed == -5) {
-						System.out.println("Response: Opponent disconnected");
+						if (debugMode) {
+							System.out.println("Response: Opponent disconnected");
+						}
 						setMyTurn(false);
 						doLoop = false;
 					}
@@ -159,60 +216,41 @@ public class GameManager {
 			}
 			
 		}
-		catch (UnknownHostException uhe) {
-			fireConnectionError(uhe);
-			fireStatusChange("errorUnknownHost", ERROR_COLOR);
+		catch (ConnectException ce) {
+			fireStatusChange("errorStatusUnknownHost", StatusChangeEvent.ERROR_COLOR);
+			fireConnectionError(ce, false);
 		}
-		catch (IOException e) {
-			fireConnectionError(e);
-			fireStatusChange("errorConnectionError", ERROR_COLOR);
+		catch (UnknownHostException uhe) {
+			fireStatusChange("errorStatusUnknownHost", StatusChangeEvent.ERROR_COLOR);
+			fireConnectionError(uhe, false);
+		}
+		catch (IOException ioe) {
+			fireStatusChange("errorStatusConnectionError", StatusChangeEvent.ERROR_COLOR);
+			fireConnectionError(ioe, false);
+		}
+		catch (NullPointerException npe) {
+			fireStatusChange("errorStatusConnectionLost", StatusChangeEvent.ERROR_COLOR);
+			fireConnectionError(npe, true);
+		}
+		catch (Exception e) {
+			fireStatusChange("errorStatusConnectionError", StatusChangeEvent.ERROR_COLOR);
+			fireConnectionError(e, false);
 		}
 		
-	}
-	
-	/**
-	 * Piece Selected - triggered when the player clicks on a piece.
-	 * Sends the information (xy) to the server.
-	 * @param info The formatted string of the piece
-	 */
-	public synchronized void pieceSelected(String info) {
-		try {
-			
-			if (myTurn) {
-				
-				if (!firstPieceSent) {
-					out.write(info.substring(1,3));
-					out.newLine();
-					out.flush();
-					firstPieceSent = true;
-				}
-				else if (firstPieceSent) {
-					out.write(info.substring(1,3));
-					out.newLine();
-					out.flush();
-					secondPieceSent = true;
-				}
-			
-			}	
-			else {
-				//Not my Turn
-				fireStatusChange("errorNotYourTurn", ERROR_COLOR);
-			}
-			
+		/*catch (UnknownHostException uh) {
+			fireConnectionError(uh);
+			fireStatusChange("errorUnknownHost", StatusChangeEvent.ERROR_COLOR);
 		}
-		catch (IOException e) {
+		catch (Exception e) {
 			fireConnectionError(e);
-			fireStatusChange("errorConnectionError", ERROR_COLOR);
+			//fireStatusChange("errorConnectionError", StatusChangeEvent.ERROR_COLOR);
 		}
+		catch (NullPointerException np) {
+			fireConnectionError(np);
+			//fireStatusChange("errorInvalidResponse", StatusChangeEvent.ERROR_COLOR);
+		}*/
+		
 	}
-	
-	/**
-	 * Remove Listener - removes a listener
-	 * @param listener The listener to remove
-	 */
-    public void removeListener(BreakthroughListener listener){
-        listeners.remove(listener);
-    }
 	
 	/**
 	 * Connected - tells the listeners that the connection has been initiated
@@ -244,16 +282,14 @@ public class GameManager {
 	 * Connection Error - sends the exception to the listeners encapsulated in a ConnectionErrorEvent
 	 * @param e The exception returned from the error
 	 */
-	private void fireConnectionError(Exception e) {
-		ConnectionErrorEvent event = new ConnectionErrorEvent(e);
+	private void fireConnectionError(Exception e, boolean reset) {
+		ConnectionErrorEvent event = new ConnectionErrorEvent(e, reset);
 		Iterator iter = new ArrayList<BreakthroughListener>(listeners).iterator();
         while (iter.hasNext()) {
             BreakthroughListener listener = (BreakthroughListener) iter.next();
             listener.connectionError(event);
         }
 	}
-	
-	
 	
 	/**
 	 * Game Over - Tells the listeners that the game is over and a winner has been disclosed
@@ -347,12 +383,64 @@ public class GameManager {
 	}
 	
 	/**
+	 * Piece Selected - triggered when the player clicks on a piece.
+	 * Sends the information (xy) to the server.
+	 * @param info The formatted string of the piece
+	 */
+	public synchronized void pieceSelected(String info) {
+		try {
+			
+			if (myTurn && connected) {
+				
+				if (!firstPieceSent) {
+					out.write(info.substring(1,3));
+					out.newLine();
+					out.flush();
+					firstPieceSent = true;
+				}
+				else if (firstPieceSent) {
+					out.write(info.substring(1,3));
+					out.newLine();
+					out.flush();
+					secondPieceSent = true;
+				}
+			
+			}	
+			else if (!myTurn) {
+				
+				fireStatusChange("errorNotYourTurn", StatusChangeEvent.ERROR_COLOR);
+				
+			}
+			else {
+				
+				if (debugMode) {
+					fireStatusChange("Clicked: "+info.substring(1,3));
+				}
+				
+			}
+			
+		}
+		catch (IOException e) {
+			fireConnectionError(e, false);
+			fireStatusChange("errorConnectionError", StatusChangeEvent.ERROR_COLOR);
+		}
+	}
+	
+	/**
+	 * Remove Listener - removes a listener
+	 * @param listener The listener to remove
+	 */
+    public void removeListener(BreakthroughListener listener){
+        listeners.remove(listener);
+    }
+	
+	/**
 	 * Set My Turn - registers that it is currently the player's turn
 	 * @param turn What to set the turn to (true for player's turn)
 	 */
 	private synchronized void setMyTurn(boolean turn) {
 		if (turn) {
-			fireStatusChange("statusYourTurn", ALERT_COLOR);
+			fireStatusChange("statusYourTurn", StatusChangeEvent.ALERT_COLOR);
 			this.myTurn = true;
 		}
 		else if (!turn) {
