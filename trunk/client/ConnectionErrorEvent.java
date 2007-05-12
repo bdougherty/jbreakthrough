@@ -1,24 +1,47 @@
 /**
- * Breakthrough Game
- * Date: May 8, 2007
+ * Breakthrough Game<br />
+ * RIT 4002-219 Final Project<br />
+ * Date: May 10, 2007
  * @author Brad Dougherty, Kevin Harris
- * @version 1.0 beta
+ * @version 1.0
  * Breakthrough Client Connection Error Event
  */
 
 public class ConnectionErrorEvent {
-	Exception e;
+	private Exception e;
+	private boolean reset;
 	
-	public ConnectionErrorEvent(Exception e) {
+	/**
+	 * Constructor
+	 * @param e The exception
+	 */
+	public ConnectionErrorEvent(Exception e, boolean reset) {
 		this.e = e;
+		this.reset = reset;
 	}
 	
+	/**
+	 * Get exception - causes the exception to be thrown
+	 * @throws Exception
+	 */
+	public void getException() throws Exception {
+		throw e;
+	}
+	
+	/**
+	 * Get message
+	 * @return the message from the exception
+	 */
 	public String getMessage() {
 		return e.getMessage();
 	}
 	
-	public void getException() throws Exception {
-		throw e;
+	/**
+	 * Should reset
+	 * @return whether or not the client should reset
+	 */
+	public boolean shouldReset() {
+		return reset;
 	}
 	
 }
