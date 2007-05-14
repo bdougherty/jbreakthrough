@@ -232,7 +232,7 @@ class ServerThread extends Thread{
 				team2Output.println("-1");
 				team2Output.flush();
 				
-				System.out.println("Team 1 winner");
+				// System.out.println("Team 1 winner");
 			}
 			else if(team2Winner == true){		//Team 2 winner.
 			
@@ -242,7 +242,7 @@ class ServerThread extends Thread{
 				team2Output.println("-2");
 				team2Output.flush();
 				
-				System.out.println("Team 2 winner");
+				// System.out.println("Team 2 winner");
 			}
 			
 			//Finish time.
