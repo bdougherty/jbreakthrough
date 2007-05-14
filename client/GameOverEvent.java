@@ -1,7 +1,7 @@
 /**
  * Breakthrough Game<br />
  * RIT 4002-219 Final Project<br />
- * Date: May 10, 2007
+ * Date: May 14, 2007
  * @author Brad Dougherty, Kevin Harris
  * @version 1.0
  * Breakthrough Client Game Over Event
@@ -42,7 +42,7 @@ public class GameOverEvent {
 	
 	/**
 	 * Is error
-	 * @param isError Whether or not an error occurred
+	 * @return isError Whether or not an error occurred
 	 */
 	public boolean isError() {
 		return isError;
@@ -50,7 +50,7 @@ public class GameOverEvent {
 	
 	/**
 	 * Is winner
-	 * @param winner Whether the player is the winner or not
+	 * @return winner Whether the player is the winner or not
 	 */
 	public boolean isWinner() {
 		return winner;

@@ -1,7 +1,7 @@
 /**
  * Breakthrough Game<br />
  * RIT 4002-219 Final Project<br />
- * Date: May 11, 2007
+ * Date: May 14, 2007
  * @author Brad Dougherty, Kevin Harris
  * @version 1.0
  * Breakthrough Client Application GUI
@@ -148,22 +148,6 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 		if (e.shouldReset()) {
 			promptToPlayAgain(rb.getString("error"), rb.getString("errorConnectionLost"), JOptionPane.ERROR_MESSAGE);
 		}
-		
-		/*try {
-			
-			// If the connection was reset
-			if (e.getMessage().equals("Connection reset")) {
-				reset();
-				statusChanged(new StatusChangeEvent("errorConnectionLost", StatusChangeEvent.ERROR_COLOR));
-			}
-			else if (e.getMessage.equals("Connection error")) {
-				reset();
-			}
-			
-		}
-		catch (NullPointerException np) {
-			statusChanged(new StatusChangeEvent("errorInvalidResponse", StatusChangeEvent.ERROR_COLOR));
-		}*/
 	}
 	
 	/**
