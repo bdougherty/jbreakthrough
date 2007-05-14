@@ -387,6 +387,14 @@ class ServerThread extends Thread{
 				team1Output.println("-4");
 				team1Output.flush();
 			}
+			catch(ArrayIndexOutOfBoundsException aiobe) {
+				team1Output.println("-4");
+				team1Output.flush();
+			}
+			catch(StringIndexOutOfBoundsException siobe) {
+				team1Output.println("-4");
+				team1Output.flush();
+			}
 			catch(SocketException se){		//If Client disconnects.
 				
 				disconnected = true;
@@ -474,6 +482,10 @@ class ServerThread extends Thread{
 						
 						npe.printStackTrace();
 					}
+				}
+				catch(StringIndexOutOfBoundsException siobe) {
+					team1Output.println("-4");
+					team1Output.flush();
 				}
 				
 				if(boardArray[x2][y2] == 1){		//Selects new piece.
@@ -665,6 +677,10 @@ class ServerThread extends Thread{
 							npe.printStackTrace();
 						}
 					}
+					catch(StringIndexOutOfBoundsException siobe) {
+						team1Output.println("-4");
+						team1Output.flush();
+					}
 				}
 				else if(newSelection){
 				
@@ -696,6 +712,14 @@ class ServerThread extends Thread{
 			
 				team2Output.println("-4");
 				team2Output.flush();
+			}
+			catch(StringIndexOutOfBoundsException siobe) {
+				team1Output.println("-4");
+				team1Output.flush();
+			}
+			catch(ArrayIndexOutOfBoundsException aiobe) {
+				team1Output.println("-4");
+				team1Output.flush();
 			}
 			catch(SocketException se){		//If Client disconnects.
 				
