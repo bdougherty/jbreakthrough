@@ -30,4 +30,3 @@ Server Codes:
   * -3 : confirmation of a valid move
   * -4 : invalid input
   * -5 : other player has disconnected
-  * -6 : not your turn
