@@ -18,9 +18,7 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.util.Locale;
 import java.util.ResourceBundle;
-import java.io.*;
 import javax.swing.*;
-import java.net.*;
 
 public class Breakthrough extends JFrame implements BreakthroughListener {
 	private JTextField addressTF;
@@ -148,16 +146,7 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 		
 		// Prompt the user to play again
 		if (e.shouldReset()) {
-			
-			int reset = JOptionPane.showConfirmDialog(this, rb.getString("errorConnectionLost")+"\n"+rb.getString("playAgain"), rb.getString("error"), JOptionPane.YES_NO_OPTION, JOptionPane.ERROR_MESSAGE);
-			
-			if (reset == 0) {
-				reset();
-			}
-			else {
-				System.exit(0);
-			}
-			
+			promptToPlayAgain(rb.getString("error"), rb.getString("errorConnectionLost"), JOptionPane.ERROR_MESSAGE);
 		}
 		
 		/*try {
@@ -212,14 +201,7 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 				playSound("error.wav");
 			}
 		}
-		
-		int reset = JOptionPane.showConfirmDialog(breakthrough, message+"\n"+rb.getString("playAgain"), title, JOptionPane.YES_NO_OPTION, JOptionPane.INFORMATION_MESSAGE);
-		if (reset == 0) {
-			reset();
-		}
-		else {
-			System.exit(0);
-		}
+		promptToPlayAgain(title, message, JOptionPane.INFORMATION_MESSAGE);
 	}
 	
 	/**
@@ -296,12 +278,7 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 			disconnect.addActionListener(
 				new ActionListener() {
 					public void actionPerformed(ActionEvent ae) {
-						
-						int disconnect = JOptionPane.showConfirmDialog(breakthrough, rb.getString("disconnectConfirmation"), rb.getString("disconnect"), JOptionPane.YES_NO_OPTION, JOptionPane.INFORMATION_MESSAGE);
-						if (disconnect == 0) {
-							reset();
-						}
-						
+						promptForDisconnect();
 					}
 				}
 			);
@@ -310,26 +287,31 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 		
 		JMenu helpMenu = new JMenu(rb.getString("helpMenu"));
 		JMenuItem rules = new JMenuItem(rb.getString("helpMenuRules")+"...");
+		JMenuItem about = new JMenuItem(rb.getString("helpMenuAbout"));
 		helpMenu.add(rules);
+		helpMenu.add(about);
 		menuBar.add(helpMenu);
 		
-		rules.addActionListener(
-			new ActionListener() {
-				public void actionPerformed(ActionEvent ae) {
-					
-					JTextArea text = new JTextArea(10,40);
-					JScrollPane scroll = new JScrollPane(text);
-					text.append(rb.getString("rules"));
-					text.setLineWrap(true);
-					text.setWrapStyleWord(true);
-					text.setCaretPosition(0);
-					text.setEditable(false);
-					
-					JOptionPane.showMessageDialog(breakthrough, scroll,rb.getString("rulesDialogTitle"),JOptionPane.INFORMATION_MESSAGE);
-					
-				}
+		rules.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent ae) {
+				
+				JTextArea text = new JTextArea(10,40);
+				JScrollPane scroll = new JScrollPane(text);
+				text.append(rb.getString("rules"));
+				text.setLineWrap(true);
+				text.setWrapStyleWord(true);
+				text.setCaretPosition(0);
+				text.setEditable(false);
+				
+				JOptionPane.showMessageDialog(breakthrough, scroll, rb.getString("rulesDialogTitle"), JOptionPane.INFORMATION_MESSAGE);
+				
 			}
-		);
+		});
+		about.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent ae) {
+				JOptionPane.showMessageDialog(breakthrough, rb.getString("aboutText"), rb.getString("aboutTitle"), JOptionPane.INFORMATION_MESSAGE);
+			}
+		});
 		
 		return menuBar;
 	}
@@ -338,6 +320,12 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 	 * Initializes common components
 	 */
 	private void init() {
+		// Set the look and feel to the default of the OS
+		try {
+			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+		}
+		catch (Exception e) {}
+		
 		button = new JButton[8][8];
 		addressTF = new JTextField(10);
 		nameTF = new JTextField(10);
@@ -399,23 +387,24 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 		
 		welcomePanel.add(welcomeLBL);
 		infoPanel.add(statusLBL);
-		add(welcomePanel, BorderLayout.NORTH);
-		add(buttonPanel);
-		add(infoPanel, BorderLayout.SOUTH);
-		setJMenuBar(getMyMenuBar(true));
-		setTitle("Breakthrough");
-		setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
-		addWindowListener(
+		
+		this.add(welcomePanel, BorderLayout.NORTH);
+		this.add(buttonPanel);
+		this.add(infoPanel, BorderLayout.SOUTH);
+		this.setJMenuBar(getMyMenuBar(true));
+		this.setTitle("Breakthrough");
+		this.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+		this.addWindowListener(
 			new WindowAdapter() {
 				public void windowClosing(WindowEvent event) {
 					promptForExit();
 				}
 			}
 		);
-		setResizable(false);
-		pack();
-		setLocationRelativeTo(null); // Center on screen
-		setVisible(true);
+		this.setResizable(false);
+		this.pack();
+		this.setLocationRelativeTo(null); // Center on screen
+		this.setVisible(true);
 	}
 	
 	/**
@@ -544,18 +533,18 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 	public void pieceMoved(final PieceMovedEvent e) {
 		String info = e.getActionCommand();
 		int team = e.getTeam();
-		int x = e.getX();
-		int y = e.getY();
+		int j = e.getX();
+		int i = e.getY();
 		
-		button[y][x].setActionCommand(info);
+		button[i][j].setActionCommand(info);
 		if (team == 0) {
-			button[y][x].setIcon(new ImageIcon());
+			button[i][j].setIcon(new ImageIcon());
 		}
 		else if (team == 1) {
-			button[y][x].setIcon(team1Ico);
+			button[i][j].setIcon(team1Ico);
 		}
 		else if (team == 2) {
-			button[y][x].setIcon(team2Ico);
+			button[i][j].setIcon(team2Ico);
 		}
 	}
 	
@@ -568,7 +557,19 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 			java.applet.AudioClip clip = java.applet.Applet.newAudioClip(this.getClass().getResource("sounds/"+file));
 			clip.play();
 		}
-		catch (Exception e) {}
+		catch (Exception e) {
+			// Doesn't matter if the sound doesn't play
+		}
+	}
+	
+	/**
+	 * Prompt for disconnect
+	 */
+	private void promptForDisconnect() {
+		int disconnect = JOptionPane.showConfirmDialog(breakthrough, rb.getString("disconnectConfirmation"), rb.getString("disconnect"), JOptionPane.YES_NO_OPTION, JOptionPane.INFORMATION_MESSAGE);
+		if (disconnect == JOptionPane.YES_OPTION) {
+			reset();
+		}
 	}
 	
 	/**
@@ -576,7 +577,21 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 	 */
 	private void promptForExit() {
 		int exit = JOptionPane.showConfirmDialog(breakthrough, rb.getString("exitConfirmation"), rb.getString("exit"), JOptionPane.YES_NO_OPTION, JOptionPane.INFORMATION_MESSAGE);
-		if (exit == 0) {
+		if (exit == JOptionPane.YES_OPTION) {
+			gameManager.closeSocket();
+			System.exit(0);
+		}
+	}
+	
+	/**
+	 * Prompt to play again
+	 */
+	private void promptToPlayAgain(String title, String message, int messageType) {
+		int reset = JOptionPane.showConfirmDialog(breakthrough, message+"\n"+rb.getString("playAgain"), title, JOptionPane.YES_NO_OPTION, messageType);
+		if (reset == JOptionPane.YES_OPTION) {
+			reset();
+		}
+		else {
 			gameManager.closeSocket();
 			System.exit(0);
 		}
