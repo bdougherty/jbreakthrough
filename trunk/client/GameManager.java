@@ -1,7 +1,7 @@
 /**
  * Breakthrough Game<br />
  * RIT 4002-219 Final Project<br />
- * Date: May 10, 2007
+ * Date: May 14, 2007
  * @author Brad Dougherty, Kevin Harris
  * @version 1.0
  * Breakthrough Client Game Manager
@@ -236,19 +236,6 @@ public class GameManager {
 			fireStatusChange("errorStatusConnectionError", StatusChangeEvent.ERROR_COLOR);
 			fireConnectionError(e, false);
 		}
-		
-		/*catch (UnknownHostException uh) {
-			fireConnectionError(uh);
-			fireStatusChange("errorUnknownHost", StatusChangeEvent.ERROR_COLOR);
-		}
-		catch (Exception e) {
-			fireConnectionError(e);
-			//fireStatusChange("errorConnectionError", StatusChangeEvent.ERROR_COLOR);
-		}
-		catch (NullPointerException np) {
-			fireConnectionError(np);
-			//fireStatusChange("errorInvalidResponse", StatusChangeEvent.ERROR_COLOR);
-		}*/
 		
 	}
 	
