@@ -1,7 +1,7 @@
 /**
  * Breakthrough Game<br />
  * RIT 4002-219 Final Project<br />
- * Date: May 10, 2007
+ * Date: May 14, 2007
  * @author Brad Dougherty, Kevin Harris
  * @version 1.0
  * Breakthrough Client Connection Error Event
