@@ -219,22 +219,44 @@ public class GameManager {
 		catch (ConnectException ce) {
 			fireStatusChange("errorStatusUnknownHost", StatusChangeEvent.ERROR_COLOR);
 			fireConnectionError(ce, false);
+			if (debugMode) {
+				ce.printStackTrace();
+			}
 		}
 		catch (UnknownHostException uhe) {
 			fireStatusChange("errorStatusUnknownHost", StatusChangeEvent.ERROR_COLOR);
 			fireConnectionError(uhe, false);
-		}
-		catch (IOException ioe) {
-			fireStatusChange("errorStatusConnectionError", StatusChangeEvent.ERROR_COLOR);
-			fireConnectionError(ioe, false);
+			if (debugMode) {
+				uhe.printStackTrace();
+			}
 		}
 		catch (NullPointerException npe) {
 			fireStatusChange("errorStatusConnectionLost", StatusChangeEvent.ERROR_COLOR);
 			fireConnectionError(npe, true);
+			if (debugMode) {
+				npe.printStackTrace();
+			}
+		}
+		catch (SocketException se) {
+			fireStatusChange("errorStatusConnectionLost", StatusChangeEvent.ERROR_COLOR);
+			fireConnectionError(se, true);
+			if (debugMode) {
+				se.printStackTrace();
+			}
+		}
+		catch (IOException ioe) {
+			fireStatusChange("errorStatusConnectionError", StatusChangeEvent.ERROR_COLOR);
+			fireConnectionError(ioe, true);
+			if (debugMode) {
+				ioe.printStackTrace();
+			}
 		}
 		catch (Exception e) {
 			fireStatusChange("errorStatusConnectionError", StatusChangeEvent.ERROR_COLOR);
-			fireConnectionError(e, false);
+			fireConnectionError(e, true);
+			if (debugMode) {
+				e.printStackTrace();
+			}
 		}
 		
 	}
@@ -354,18 +376,26 @@ public class GameManager {
 	 */
 	private void movePiece(String first, String second) {
 		
-		// Parse info for first piece
-		int team1 = Integer.parseInt(first.substring(0,1));
-		int x1 = Integer.parseInt(first.substring(1,2));
-		int y1 = Integer.parseInt(first.substring(2,3));
-		
-		// Parse info for second piece
-		int team2 = Integer.parseInt(second.substring(0,1));
-		int x2 = Integer.parseInt(second.substring(1,2));
-		int y2 = Integer.parseInt(second.substring(2,3));
-		
-		fireSetPiece(team1, x1, y1);
-		fireSetPiece(team2, x2, y2);
+		try {
+			
+			// Parse info for first piece
+			int team1 = Integer.parseInt(first.substring(0,1));
+			int x1 = Integer.parseInt(first.substring(1,2));
+			int y1 = Integer.parseInt(first.substring(2,3));
+
+			// Parse info for second piece
+			int team2 = Integer.parseInt(second.substring(0,1));
+			int x2 = Integer.parseInt(second.substring(1,2));
+			int y2 = Integer.parseInt(second.substring(2,3));
+
+			fireSetPiece(team1, x1, y1);
+			fireSetPiece(team2, x2, y2);
+			
+		}
+		catch (NumberFormatException nfe) {
+			fireStatusChange("errorInvalidResponse", StatusChangeEvent.ERROR_COLOR);
+			fireConnectionError(nfe, true);
+		}
 		
 	}
 	
