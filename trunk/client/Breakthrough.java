@@ -1,7 +1,7 @@
 /**
  * Breakthrough Game<br />
  * RIT 4002-219 Final Project<br />
- * Date: May 14, 2007
+ * Date: May 16, 2007
  * @author Brad Dougherty, Kevin Harris
  * @version 1.0
  * Breakthrough Client Application GUI
@@ -23,6 +23,7 @@ import javax.swing.*;
 public class Breakthrough extends JFrame implements BreakthroughListener {
 	private JTextField addressTF;
 	static Breakthrough breakthrough;
+	private BreakthroughReplay replay;
 	private JButton [][] button;
 	private JPanel buttonPanel;
 	private JFrame configFrame;
@@ -30,6 +31,7 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 	private boolean debugMode;
 	private GameManager gameManager;
 	private JLabel infoLBL;
+	private boolean inReplay;
 	private String myName;
 	private JTextField nameTF;
 	private String opponentName;
@@ -55,6 +57,8 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 	public Breakthrough() {
 		gameManager = new GameManager(false);
 		gameManager.addListener(this);
+		replay = new BreakthroughReplay(this);
+		gameManager.addListener(replay);
 		init();
 		layoutConfig();
 	}
@@ -65,6 +69,8 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 	public Breakthrough(String address, String name, int theme, boolean enableSound, boolean debugMode) {
 		gameManager = new GameManager(debugMode);
 		gameManager.addListener(this);
+		replay = new BreakthroughReplay(this);
+		gameManager.addListener(replay);
 		init();
 		this.debugMode = debugMode;
 		layoutConfig();
@@ -99,7 +105,19 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 					nameTF.requestFocus();
 				}
 				else {
-					gameManager.connect(addressTF.getText(), BREAKTHROUGH_PORT, nameTF.getText());
+					
+					String address = addressTF.getText();
+					int port = BREAKTHROUGH_PORT;
+					try {
+						port = Integer.parseInt(address.substring(address.indexOf(":")+1, address.length()));
+					}
+					catch (Exception e) {}
+					
+					if (debugMode) {
+						System.out.println("Using port: "+port);
+					}
+					
+					gameManager.connect(address, port, nameTF.getText());
 				}
 				
 			}
@@ -146,19 +164,18 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 		
 		// Prompt the user to play again
 		if (e.shouldReset()) {
-			promptToPlayAgain(rb.getString("error"), rb.getString("errorConnectionLost"), JOptionPane.ERROR_MESSAGE);
+			promptToPlayAgain(rb.getString("error"), rb.getString("errorConnectionLost"), JOptionPane.ERROR_MESSAGE, false);
 		}
 	}
 	
 	/**
-	 * Game over - when a winner has been declared
+	 * Game over - when the game is over, either a win, loss, or error
 	 * @param e The GameOverEvent
 	 */
 	public void gameOver(final GameOverEvent e) {
 		String message;
 		String title;
 		if (e.isError()) {
-			System.out.println("Error");
 			message = opponentName+" "+rb.getString("errorOpponentDisconnected");
 			title = "Opponent Disconnected";
 			
@@ -166,6 +183,7 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 			if (soundCK.isSelected()) {
 				playSound("error.wav");
 			}
+			promptToPlayAgain(title, message, JOptionPane.INFORMATION_MESSAGE, false);
 		}
 		else if (e.isWinner()) {
 			message = rb.getString("beat")+" "+opponentName+"!";
@@ -175,6 +193,9 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 			if (soundCK.isSelected()) {
 				playSound("success.wav");
 			}
+			
+			promptToPlayAgain(title, message, JOptionPane.INFORMATION_MESSAGE, true);
+			
 		}
 		else {
 			message = rb.getString("lostPart1")+" "+opponentName+" "+rb.getString("lostPart2");
@@ -184,8 +205,8 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 			if (soundCK.isSelected()) {
 				playSound("error.wav");
 			}
+			promptToPlayAgain(title, message, JOptionPane.INFORMATION_MESSAGE, true);
 		}
-		promptToPlayAgain(title, message, JOptionPane.INFORMATION_MESSAGE);
 	}
 	
 	/**
@@ -312,14 +333,19 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 		
 		button = new JButton[8][8];
 		addressTF = new JTextField(10);
+		addressTF.setToolTipText(rb.getString("addressTFTooltip"));
 		nameTF = new JTextField(10);
+		nameTF.setToolTipText(rb.getString("nameTFTooltip"));
 		themesCB = new JComboBox(themes);
+		themesCB.setToolTipText(rb.getString("themesCBTooltip"));
 		soundCK = new JCheckBox(rb.getString("configEnableSoundsBox"),true);
+		soundCK.setToolTipText(rb.getString("soundCKTooltip"));
 		statusLBL = new JLabel(rb.getString("statusPrefix")+": "+rb.getString("statusWaitingForInformation"));
 		welcomeLBL = new JLabel();
 		infoLBL = new JLabel(rb.getString("welcomeMessage"));
 		titleIco = new ImageIcon(this.getClass().getResource("images/title.png"));
 		connectButton = new JButton(rb.getString("configConnectButtonLabel"));
+		inReplay = false;
 	}
 	
 	/**
@@ -550,9 +576,14 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 	 * Prompt for disconnect
 	 */
 	private void promptForDisconnect() {
-		int disconnect = JOptionPane.showConfirmDialog(breakthrough, rb.getString("disconnectConfirmation"), rb.getString("disconnect"), JOptionPane.YES_NO_OPTION, JOptionPane.INFORMATION_MESSAGE);
-		if (disconnect == JOptionPane.YES_OPTION) {
+		if (inReplay) {
 			reset();
+		}
+		else {
+			int disconnect = JOptionPane.showConfirmDialog(breakthrough, rb.getString("disconnectConfirmation"), rb.getString("disconnect"), JOptionPane.YES_NO_OPTION, JOptionPane.INFORMATION_MESSAGE);
+			if (disconnect == JOptionPane.YES_OPTION) {
+				reset();
+			}
 		}
 	}
 	
@@ -560,24 +591,69 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 	 * Prompt for exit
 	 */
 	private void promptForExit() {
-		int exit = JOptionPane.showConfirmDialog(breakthrough, rb.getString("exitConfirmation"), rb.getString("exit"), JOptionPane.YES_NO_OPTION, JOptionPane.INFORMATION_MESSAGE);
-		if (exit == JOptionPane.YES_OPTION) {
+		if (inReplay) {
 			gameManager.closeSocket();
 			System.exit(0);
+		}
+		else {
+			int exit = JOptionPane.showConfirmDialog(breakthrough, rb.getString("exitConfirmation"), rb.getString("exit"), JOptionPane.YES_NO_OPTION, JOptionPane.INFORMATION_MESSAGE);
+			if (exit == JOptionPane.YES_OPTION) {
+				gameManager.closeSocket();
+				System.exit(0);
+			}
 		}
 	}
 	
 	/**
 	 * Prompt to play again
 	 */
-	private void promptToPlayAgain(String title, String message, int messageType) {
-		int reset = JOptionPane.showConfirmDialog(breakthrough, message+"\n"+rb.getString("playAgain"), title, JOptionPane.YES_NO_OPTION, messageType);
-		if (reset == JOptionPane.YES_OPTION) {
-			reset();
+	private void promptToPlayAgain(String title, String message, int messageType, boolean replayAvailable) {
+		if (replayAvailable) {
+			
+			int reset = JOptionPane.showOptionDialog(breakthrough, message+"\n"+rb.getString("playAgain"), title, JOptionPane.YES_NO_OPTION, messageType, null, new String[] {rb.getString("playAgainButton"),rb.getString("viewReplayButton"),rb.getString("exitButton")}, rb.getString("playAgainButton"));
+			
+			if (reset == 0) {
+				reset();
+			}
+			if (reset == 1) {
+				inReplay = true;
+				gameManager.closeSocket();
+				
+				// Start the replay in a separate thread
+				new Thread() {
+					public void run() {
+						replay.init();
+					}
+				}.start();
+			}
+			else {
+				gameManager.closeSocket();
+				System.exit(0);
+			}
+			
 		}
 		else {
-			gameManager.closeSocket();
+			
+			int reset = JOptionPane.showConfirmDialog(breakthrough, message+"\n"+rb.getString("playAgain"), title, JOptionPane.YES_NO_OPTION, messageType);
+			
+			if (reset == JOptionPane.YES_OPTION) {
+				reset();
+			}
+			else {
+				gameManager.closeSocket();
+				System.exit(0);
+			}
+			
+		}
+		
+	}
+	
+	public void replayOver(String action) {
+		if (action.equals("exit")) {
 			System.exit(0);
+		}
+		else if (action.equals("reset")) {
+			reset();
 		}
 	}
 	
