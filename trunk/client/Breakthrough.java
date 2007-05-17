@@ -619,7 +619,7 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 			if (reset == 0) {
 				reset();
 			}
-			if (reset == 1) {
+			else if (reset == 1) {
 				inReplay = true;
 				gameManager.closeSocket();
 				
