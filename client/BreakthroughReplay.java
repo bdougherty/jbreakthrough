@@ -27,6 +27,7 @@ public class BreakthroughReplay implements BreakthroughListener, ActionListener 
 	private JButton pause;
 	private JButton play;
 	private JButton rewind;
+	private JLabel status;
 	private int team;
 	private Timer timer;
 	private int totalMoves;
@@ -54,24 +55,27 @@ public class BreakthroughReplay implements BreakthroughListener, ActionListener 
 			play.setEnabled(true);
 			pause.setEnabled(false);
 			enableButtons();
+			status.setText(rb.getString("replayCurrentMove")+": "+totalMoves+"/"+totalMoves);
 		}
 		else {
 			String thisMove = moves.get(currentMove);
-
+			
 			// Parse info for first piece
 			int team1 = Integer.parseInt(thisMove.substring(0,1));
 			int x1 = Integer.parseInt(thisMove.substring(1,2));
 			int y1 = Integer.parseInt(thisMove.substring(2,3));
-
+			
 			// Parse info for second piece
 			int team2 = Integer.parseInt(thisMove.substring(4,5));
 			int x2 = Integer.parseInt(thisMove.substring(5,6));
 			int y2 = Integer.parseInt(thisMove.substring(6,7));
-
+			
 			breakthrough.pieceMoved(new PieceMovedEvent(team1, x1, y1));
 			breakthrough.pieceMoved(new PieceMovedEvent(team2, x2, y2));
-
+			
 			currentMove++;
+			status.setText(rb.getString("replayCurrentMove")+": "+currentMove+"/"+totalMoves);
+			
 		}
 	}
 	
@@ -141,14 +145,22 @@ public class BreakthroughReplay implements BreakthroughListener, ActionListener 
 		controls.add(pause);
 		controls.add(forward);
 		
-		JPanel gameControls = new JPanel(new BorderLayout());
+		JPanel statusPanel = new JPanel(new BorderLayout());
+		JPanel statusMessagePanel = new JPanel();
+		status = new JLabel(rb.getString("replayCurrentMove")+": 0/"+totalMoves);
+		statusMessagePanel.add(status);
+		statusPanel.add(new JSeparator(), BorderLayout.NORTH);
+		statusPanel.add(new JPanel().add(statusMessagePanel));
+		statusPanel.add(new JSeparator(), BorderLayout.SOUTH);
+		
+		JPanel gameControls = new JPanel();
 		JButton newGame = new JButton(rb.getString("playAgainButton"));
 		JButton exit = new JButton(rb.getString("exit"));
-		gameControls.add(new JPanel(new FlowLayout()).add(newGame), BorderLayout.NORTH);
-		gameControls.add(new JPanel(new FlowLayout()).add(exit), BorderLayout.SOUTH);
+		gameControls.add(newGame);
+		gameControls.add(exit);
 		
 		replayController.add(controls, BorderLayout.NORTH);
-		replayController.add(new JSeparator(), BorderLayout.CENTER);
+		replayController.add(statusPanel, BorderLayout.CENTER);
 		replayController.add(gameControls, BorderLayout.SOUTH);
 		
 		rewind.addActionListener(new ActionListener() {
@@ -191,8 +203,8 @@ public class BreakthroughReplay implements BreakthroughListener, ActionListener 
 		replayController.setVisible(true);
 		
 		timer = new Timer(1000, this);
-		
 		resetBoard();
+		breakthrough.statusChanged(new StatusChangeEvent("replayViewing"));
 		
 	}
 	
@@ -246,6 +258,7 @@ public class BreakthroughReplay implements BreakthroughListener, ActionListener 
 	private void resetBoard() {
 		
 		currentMove = 0;
+		status.setText(rb.getString("replayCurrentMove")+": 0/"+totalMoves);
 		
 		for (int i = 0; i < 8; i++) {
 			for (int j = 0; j < 8; j++) {
