@@ -104,6 +104,10 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 					statusChanged(new StatusChangeEvent("errorMustEnterName", StatusChangeEvent.ERROR_COLOR));
 					nameTF.requestFocus();
 				}
+				else if (nameTF.getText().length() > 40) {
+					statusChanged(new StatusChangeEvent("errorNameTooLong", StatusChangeEvent.ERROR_COLOR));
+					nameTF.requestFocus();
+				}
 				else {
 					
 					String address = addressTF.getText();
