@@ -1,13 +1,16 @@
+/**
+ * Breakthrough Game<br />
+ * RIT 4002-219 Final Project<br />
+ * Date: May 16, 2007
+ * @author Brad Dougherty, Kevin Harris
+ * @version 1.0
+ * Breakthrough Server
+ */
+
 import java.io.*;
 import java.net.*;
 import java.util.Date;
 
-/**
- *	219- Final Project, Server for Breakthrough Game.
- * Professor Whittington
- *	@author Kevin Harris, Brad Dougherty
- *	@version 1.0
- */
 public class BreakthroughServer {
 
 	/**
@@ -232,7 +235,6 @@ class ServerThread extends Thread{
 				team2Output.println("-1");
 				team2Output.flush();
 				
-				// System.out.println("Team 1 winner");
 			}
 			else if(team2Winner == true){		//Team 2 winner.
 			
@@ -241,8 +243,6 @@ class ServerThread extends Thread{
 				
 				team2Output.println("-2");
 				team2Output.flush();
-				
-				// System.out.println("Team 2 winner");
 			}
 			
 			//Finish time.
@@ -569,6 +569,11 @@ class ServerThread extends Thread{
 							team1Output.flush();
 						}
 					}
+					else{
+					
+						team1Output.println("-4");
+						team1Output.flush();
+					}
 				}
 			}
 			catch(NumberFormatException nfe){
@@ -890,6 +895,11 @@ class ServerThread extends Thread{
 							team2Output.println("-4");
 							team2Output.flush();
 						}
+					}
+					else{
+					
+						team2Output.println("-4");
+						team2Output.flush();
 					}
 				}
 			}
