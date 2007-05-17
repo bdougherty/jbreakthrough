@@ -648,6 +648,10 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 		
 	}
 	
+	/**
+	 * When the replay is over - either exit or reset
+	 * @param action The action to take
+	 */
 	public void replayOver(String action) {
 		if (action.equals("exit")) {
 			System.exit(0);
