@@ -1,36 +1,42 @@
 /**
  * Breakthrough Game<br />
  * RIT 4002-219 Final Project<br />
- * Date: May 16, 2007
+ * Date: May 26, 2007
  * @author Brad Dougherty, Kevin Harris
- * @version 1.0
+ * @version 1.0.1
  * Breakthrough Client Replay
  */
+
+// NOTE: LOGGING FUNCTIONS TO BE MOVED TO BreakthroughLogger
 
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
-import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.Locale;
 import java.util.ResourceBundle;
-import javax.swing.*;
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
+import javax.swing.JPanel;
+import javax.swing.JSeparator;
+import javax.swing.Timer;
 
-public class BreakthroughReplay implements BreakthroughListener, ActionListener {
+public class BreakthroughReplay implements ActionListener {
 	private Breakthrough breakthrough;
 	private int currentMove = 0;
-	private boolean firstPiece = false;
 	private JButton forward;
-	private String log = "";
-	private ArrayList<String> moves;
+	private BreakthroughLogger logger;
 	private JButton pause;
 	private JButton play;
 	private JButton rewind;
 	private JLabel status;
-	private int team;
-	private Timer timer;
 	private int totalMoves;
+	private Timer timer;
 	
 	// Internationalization
 	private Locale l = Locale.getDefault();
@@ -40,9 +46,9 @@ public class BreakthroughReplay implements BreakthroughListener, ActionListener 
 	 * Constructor
 	 * @param breakthrough The breakthrough class
 	 */
-	public BreakthroughReplay(Breakthrough breakthrough) {
+	public BreakthroughReplay(Breakthrough breakthrough, BreakthroughLogger logger) {
 		this.breakthrough = breakthrough;
-		moves = new ArrayList<String>();
+		this.logger = logger;
 	}
 	
 	/**
@@ -58,7 +64,7 @@ public class BreakthroughReplay implements BreakthroughListener, ActionListener 
 			status.setText(rb.getString("replayCurrentMove")+": "+totalMoves+"/"+totalMoves);
 		}
 		else {
-			String thisMove = moves.get(currentMove);
+			String thisMove = logger.getMove(currentMove);
 			
 			// Parse info for first piece
 			int team1 = Integer.parseInt(thisMove.substring(0,1));
@@ -75,16 +81,7 @@ public class BreakthroughReplay implements BreakthroughListener, ActionListener 
 			
 			currentMove++;
 			status.setText(rb.getString("replayCurrentMove")+": "+currentMove+"/"+totalMoves);
-			
 		}
-	}
-	
-	/**
-	 * Connected method - when the game is fully initialized
-	 * @param e The ConnectionEvent
-	 */
-	public void connected(ConnectionEvent e) {
-		team = e.getTeam();
 	}
 	
 	/**
@@ -106,14 +103,6 @@ public class BreakthroughReplay implements BreakthroughListener, ActionListener 
 	}
 	
 	/**
-	 * Game over - when the game is over, records total number of moves for the game
-	 * @param e The GameOverEvent
-	 */
-	public void gameOver(GameOverEvent e) {
-		totalMoves = currentMove;
-	}
-	
-	/**
 	 * Updates the board to the specified move
 	 * @param m The move to go to
 	 * @param source The source object to give to the ActionEvent
@@ -131,7 +120,17 @@ public class BreakthroughReplay implements BreakthroughListener, ActionListener 
 	 */
 	public void init() {
 		
+		totalMoves = logger.getTotalMoves();
+		System.out.println("Total moves (Replay): "+totalMoves);
 		final JFrame replayController = new JFrame("Replay");
+		
+		JMenuBar menuBar = new JMenuBar();
+		JMenu replayMenu = new JMenu("Replay");
+		JMenuItem openReplay = new JMenuItem("Open Saved Replay...");
+		JMenuItem saveReplay = new JMenuItem("Save Replay...");
+		replayMenu.add(openReplay);
+		replayMenu.add(saveReplay);
+		menuBar.add(replayMenu);
 		
 		JPanel controls = new JPanel();
 		rewind = new JButton(new ImageIcon(this.getClass().getResource("images/control_rewind.png")));
@@ -198,6 +197,7 @@ public class BreakthroughReplay implements BreakthroughListener, ActionListener 
 		int locX = (int)breakthrough.getLocation().getX()+(int)breakthrough.getSize().getWidth();
 		int locY = (int)breakthrough.getLocation().getY();
 		replayController.setLocation(locX, locY);
+		replayController.setJMenuBar(menuBar);
 		replayController.setResizable(false);
 		replayController.pack();
 		replayController.setVisible(true);
@@ -216,26 +216,6 @@ public class BreakthroughReplay implements BreakthroughListener, ActionListener 
 		play.setEnabled(true);
 		pause.setEnabled(false);
 		enableButtons();
-	}
-	
-	/**
-	 * Piece moved method - records each piece movement
-	 * @param e The PieceMovedEvent
-	 */
-	public void pieceMoved(PieceMovedEvent e) {
-		
-		if (!firstPiece) {
-			log = e.getActionCommand()+",";
-			firstPiece = true;
-		}
-		else if (firstPiece) {
-			log = log + e.getActionCommand();
-			firstPiece = false;
-			moves.add(log);
-			log = "";
-			currentMove++;
-		}
-		
 	}
 	
 	/**
@@ -277,10 +257,5 @@ public class BreakthroughReplay implements BreakthroughListener, ActionListener 
 		}
 		
 	}
-	
-	// Don't need to do anything when these methods are called
-	public void connectionBeginning() {}
-	public void connectionError(ConnectionErrorEvent e) {}
-	public void statusChanged(StatusChangeEvent e) {}
 	
 }
