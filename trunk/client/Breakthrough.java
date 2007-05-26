@@ -1,9 +1,9 @@
 /**
  * Breakthrough Game<br />
  * RIT 4002-219 Final Project<br />
- * Date: May 16, 2007
+ * Date: May 26, 2007
  * @author Brad Dougherty, Kevin Harris
- * @version 1.0
+ * @version 1.0.1
  * Breakthrough Client Application GUI
  */
 
@@ -18,12 +18,27 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.util.Locale;
 import java.util.ResourceBundle;
-import javax.swing.*;
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.JCheckBox;
+import javax.swing.JComboBox;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JSeparator;
+import javax.swing.JTextArea;
+import javax.swing.JTextField;
+import javax.swing.SwingUtilities;
+import javax.swing.UIManager;
 
 public class Breakthrough extends JFrame implements BreakthroughListener {
 	private JTextField addressTF;
 	static Breakthrough breakthrough;
-	private BreakthroughReplay replay;
 	private JButton [][] button;
 	private JPanel buttonPanel;
 	private JFrame configFrame;
@@ -32,20 +47,24 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 	private GameManager gameManager;
 	private JLabel infoLBL;
 	private boolean inReplay;
+	private BreakthroughLogger logger;
 	private String myName;
 	private JTextField nameTF;
 	private String opponentName;
+	private BreakthroughReplay replay;
 	private JCheckBox soundCK;
 	private JLabel statusLBL;
 	private int team;
 	private ImageIcon team1Ico;
 	private ImageIcon team2Ico;
-	private String[] themes = {"Default", "Halo", "Mario", "OS"};
+	private static String[] themes = {"Default", "Halo", "Mario", "OS"};
 	private JComboBox themesCB;
 	private ImageIcon titleIco;
 	private JLabel welcomeLBL;
 	
-	private final int BREAKTHROUGH_PORT = 16789;
+	private final static int BREAKTHROUGH_PORT = 16789;
+	private final static String BREAKTHROUGH_VERSION = "1.1";
+	private final static String BREAKTHROUGH_DATE = "2007-05-20";
 	
 	// Internationalization
 	private Locale l = Locale.getDefault();
@@ -56,9 +75,10 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 	 */
 	public Breakthrough() {
 		gameManager = new GameManager(false);
+		logger = new BreakthroughLogger();
+		replay = new BreakthroughReplay(this, logger);
 		gameManager.addListener(this);
-		replay = new BreakthroughReplay(this);
-		gameManager.addListener(replay);
+		gameManager.addListener(logger);
 		init();
 		layoutConfig();
 	}
@@ -68,9 +88,10 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 	 */
 	public Breakthrough(String address, String name, int theme, boolean enableSound, boolean debugMode) {
 		gameManager = new GameManager(debugMode);
+		logger = new BreakthroughLogger();
+		replay = new BreakthroughReplay(this, logger);
 		gameManager.addListener(this);
-		replay = new BreakthroughReplay(this);
-		gameManager.addListener(replay);
+		gameManager.addListener(logger);
 		init();
 		this.debugMode = debugMode;
 		layoutConfig();
@@ -184,9 +205,8 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 			title = "Opponent Disconnected";
 			
 			// If sound is enabled
-			if (soundCK.isSelected()) {
-				playSound("error.wav");
-			}
+			playSound("error.wav");
+			
 			promptToPlayAgain(title, message, JOptionPane.INFORMATION_MESSAGE, false);
 		}
 		else if (e.isWinner()) {
@@ -194,9 +214,8 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 			title = rb.getString("winner")+"!";
 			
 			// If sound is enabled
-			if (soundCK.isSelected()) {
-				playSound("success.wav");
-			}
+			// cool-aid guy 'oh-yeah' sound
+			playSound("won.wav");
 			
 			promptToPlayAgain(title, message, JOptionPane.INFORMATION_MESSAGE, true);
 			
@@ -206,9 +225,8 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 			title = rb.getString("loser");
 			
 			// If sound is enabled
-			if (soundCK.isSelected()) {
-				playSound("error.wav");
-			}
+			playSound("lost.wav");
+			
 			promptToPlayAgain(title, message, JOptionPane.INFORMATION_MESSAGE, true);
 		}
 	}
@@ -221,41 +239,6 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 	private JMenuBar getMyMenuBar(boolean full) {
 		JMenuBar menuBar = new JMenuBar();
 		
-		if (debugMode) {
-			JMenu debugMenu = new JMenu("DEBUG");
-			JMenuItem changeTeam = new JMenuItem("Change Team");
-			JMenuItem simulateLoss = new JMenuItem("Simulate Loss");
-			JMenuItem simulateWin = new JMenuItem("Simulate Win");
-			
-			debugMenu.add(changeTeam);
-			debugMenu.add(new JSeparator());
-			debugMenu.add(simulateLoss);
-			debugMenu.add(simulateWin);
-			menuBar.add(debugMenu);
-			
-			changeTeam.addActionListener(
-				new ActionListener() {
-					public void actionPerformed(ActionEvent ae) {
-						reset();
-					}
-				}
-			);
-			simulateLoss.addActionListener(
-				new ActionListener() {
-					public void actionPerformed(ActionEvent ae) {
-						gameOver(new GameOverEvent(false));
-					}
-				}
-			);
-			simulateWin.addActionListener(
-				new ActionListener() {
-					public void actionPerformed(ActionEvent ae) {
-						gameOver(new GameOverEvent(true));
-					}
-				}
-			);
-		}
-		
 		if (full) {
 			JMenu gameMenu = new JMenu(rb.getString("gameMenu"));
 			JMenuItem changeTheme = new JMenuItem(rb.getString("gameMenuChangeTheme")+"...");
@@ -266,32 +249,63 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 			gameMenu.add(disconnect);
 			if (System.getProperty("mrj.version") == null) {
 				gameMenu.add(exit);
-				exit.addActionListener(
-					new ActionListener() {
-						public void actionPerformed(ActionEvent ae) {
-							promptForExit();
-						}
+				exit.addActionListener(new ActionListener() {
+					public void actionPerformed(ActionEvent ae) {
+						promptForExit();
 					}
-				);
+				});
 			}
 			menuBar.add(gameMenu);
 			
-			changeTheme.addActionListener(
-				new ActionListener() {
-					public void actionPerformed(ActionEvent ae) {
-						JOptionPane.showMessageDialog(breakthrough, themesCB, "Select theme", JOptionPane.INFORMATION_MESSAGE);
-						setIconTheme(themes[themesCB.getSelectedIndex()]);
-					}
+			changeTheme.addActionListener(new ActionListener() {
+				public void actionPerformed(ActionEvent ae) {
+					JOptionPane.showMessageDialog(breakthrough, themesCB, "Select theme", JOptionPane.INFORMATION_MESSAGE);
+					setIconTheme(themes[themesCB.getSelectedIndex()]);
 				}
-			);
-			disconnect.addActionListener(
-				new ActionListener() {
-					public void actionPerformed(ActionEvent ae) {
-						promptForDisconnect();
-					}
+			});
+			disconnect.addActionListener(new ActionListener() {
+				public void actionPerformed(ActionEvent ae) {
+					promptForDisconnect();
 				}
-			);
+			});
 			
+			if (debugMode) {
+				JMenu debugMenu = new JMenu("DEBUG");
+				JMenuItem changeTeam = new JMenuItem("Change Team");
+				JMenuItem simulateWin = new JMenuItem("Simulate Win");
+				JMenuItem simulateLoss = new JMenuItem("Simulate Loss");
+				JMenuItem simulateReset = new JMenuItem("Reset");
+
+				debugMenu.add(changeTeam);
+				debugMenu.add(new JSeparator());
+				debugMenu.add(simulateWin);
+				debugMenu.add(simulateLoss);
+				debugMenu.add(new JSeparator());
+				debugMenu.add(simulateReset);
+
+				menuBar.add(debugMenu);
+
+				changeTeam.addActionListener(new ActionListener() {
+					public void actionPerformed(ActionEvent ae) {
+						reset();
+					}
+				});
+				simulateWin.addActionListener(new ActionListener() {
+					public void actionPerformed(ActionEvent ae) {
+						gameOver(new GameOverEvent(true));
+					}
+				});
+				simulateLoss.addActionListener(new ActionListener() {
+					public void actionPerformed(ActionEvent ae) {
+						gameOver(new GameOverEvent(false));
+					}
+				});
+				simulateReset.addActionListener(new ActionListener() {
+					public void actionPerformed(ActionEvent ae) {
+						reset();
+					}
+				});
+			}
 		}
 		
 		JMenu helpMenu = new JMenu(rb.getString("helpMenu"));
@@ -439,27 +453,21 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 		JPanel statusPanel = new JPanel();
 		JPanel statusLabelPanel = new JPanel();
 		
-		addressTF.addActionListener(
-			new ActionListener() {
-				public void actionPerformed(ActionEvent e) {
-					connectButton_actionPerformed();
-				}
+		addressTF.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				connectButton_actionPerformed();
 			}
-		);
-		nameTF.addActionListener(
-			new ActionListener() {
-				public void actionPerformed(ActionEvent e) {
-					connectButton_actionPerformed();
-				}
+		});
+		nameTF.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				connectButton_actionPerformed();
 			}
-		);
-		connectButton.addActionListener(
-			new ActionListener() {
-				public void actionPerformed(ActionEvent e) {
-					connectButton_actionPerformed();
-				}
+		});
+		connectButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				connectButton_actionPerformed();
 			}
-		);
+		});
 		
 		imagePanel.add(titleLabel);
 		optionsPanel.add(addressLabel);
@@ -472,19 +480,29 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 		optionsPanel.add(soundCK);
 		fieldsPanel.add(optionsPanel);
 		connectPanel.add(connectButton);
+		
 		if (debugMode) {
 			JButton debugButton = new JButton("Game Board");
 			connectPanel.add(debugButton);
-			debugButton.addActionListener(
-				new ActionListener() {
-					public void actionPerformed(ActionEvent ae) {
-						int teamSelected = Integer.parseInt(JOptionPane.showInputDialog(breakthrough,"What team?"));
-						team = teamSelected;
-						connected(new ConnectionEvent(team, "Debug Mode", "no one"));
+			debugButton.addActionListener(new ActionListener() {
+				public void actionPerformed(ActionEvent ae) {
+					int teamSelected = 0;
+					do {
+						try {
+							teamSelected = Integer.parseInt(JOptionPane.showInputDialog(breakthrough,"What team?"));
+						}
+						catch (Exception e) {
+							teamSelected = 0;
+						}
+						System.out.println("Team selected: "+teamSelected);
 					}
+					while (teamSelected != 1 && teamSelected != 2);
+					team = teamSelected;
+					connected(new ConnectionEvent(team, "Debug Mode", "no one"));
 				}
-			);
+			});
 		}
+		
 		center.add(fieldsPanel, BorderLayout.NORTH);
 		center.add(connectPanel, BorderLayout.CENTER);
 		center.add(new JPanel(), BorderLayout.SOUTH);
@@ -499,9 +517,9 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 		
 		configFrame.setTitle("Breakthrough");
 		configFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		if (System.getProperty("mrj.version") != null) {
+		//if (System.getProperty("mrj.version") != null) {
 			configFrame.setJMenuBar(getMyMenuBar(false));
-		}
+		//}
 		configFrame.setResizable(false);
 		configFrame.setBackground(Color.WHITE);
 		configFrame.pack();
@@ -518,24 +536,75 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 		// Use mac menu bar
 		System.setProperty("apple.laf.useScreenMenuBar","true");
 		
-		// Get command line arguments
-		if (args.length == 0) {
-			breakthrough = new Breakthrough();
+		// Command-line arguments
+		String cmdAddress = "";
+		boolean cmdDebug = false;
+		String cmdName = "";
+		boolean cmdSound = true;
+		boolean cmdStart = true;
+		int cmdTheme = 0;
+		
+		for (int i = 0; i < args.length; i++) {
+			
+			if (args[i].toLowerCase().equals("-a") || args[i].toLowerCase().equals("--address")) {
+				try {
+					cmdAddress = args[i+1];
+				}
+				catch (Exception e) {}
+			}
+			else if (args[i].toLowerCase().equals("-d") || args[i].toLowerCase().equals("--debug")) {
+				cmdDebug = true;
+			}
+			else if (args[i].toLowerCase().equals("-h") || args[i].toLowerCase().equals("--help")) {
+				cmdStart = false;
+			}
+			else if (args[i].toLowerCase().equals("-n") || args[i].toLowerCase().equals("--name")) {
+				try {
+					cmdName = args[i+1];
+				}
+				catch (Exception e) {}
+ 			}
+			else if (args[i].toLowerCase().equals("-p") || args[i].toLowerCase().equals("--port")) {
+				try {
+					cmdAddress = cmdAddress+":"+args[i+1];
+				}
+				catch (Exception e) {}
+			}
+			else if (args[i].toLowerCase().equals("-t") || args[i].toLowerCase().equals("--theme")) {
+				try {
+					cmdTheme = Integer.parseInt(args[i+1]);
+				}
+				catch (Exception e) {
+					for (int t = 0; t < themes.length; t++) {
+						if (themes[t].toLowerCase().equals(args[i+1].toLowerCase())) {
+							cmdTheme = t;
+						}
+					}
+				}
+			}
+			
+			else if (args[i].toLowerCase().equals("-s") || args[i].toLowerCase().equals("--sound-off")) {
+				cmdSound = false;
+			}
+			
 		}
-		else if (args.length == 1) {
-			breakthrough = new Breakthrough(args[0], "", 0, true, false);
+		
+		if (cmdStart) {
+			breakthrough = new Breakthrough(cmdAddress, cmdName, cmdTheme, cmdSound, cmdDebug);
 		}
-		else if (args.length == 2) {
-			breakthrough = new Breakthrough(args[0], args[1], 0, true, false);
-		}
-		else if (args.length == 3) {
-			breakthrough = new Breakthrough(args[0], args[1], Integer.parseInt(args[2]), true, false);
-		}
-		else if (args.length == 4) {
-			breakthrough = new Breakthrough(args[0], args[1], Integer.parseInt(args[2]), Boolean.parseBoolean(args[3]), false);
-		}
-		else if (args.length >= 5) {
-			breakthrough = new Breakthrough(args[0], args[1], Integer.parseInt(args[2]), Boolean.parseBoolean(args[3]), Boolean.parseBoolean(args[4]));
+		else {
+			System.out.printf("\nBreakthrough Version "+BREAKTHROUGH_VERSION+" ("+BREAKTHROUGH_DATE+")\n\n");
+			
+			System.out.printf("Usage: java Breakthrough [OPTIONS]\n");
+			
+			System.out.printf("Options:\n");
+			System.out.printf("-a, --address <address>  The address to connect to\n");
+			System.out.printf("-d, --debug              Enable debug mode\n");
+			System.out.printf("-h, --help               Display this help message\n");
+			System.out.printf("-n, --name <name>        Your name\n");
+			System.out.printf("-p, --port <number>      The port number to use (defaults to "+BREAKTHROUGH_PORT+")\n");
+			System.out.printf("-t, --theme <name>       The name of the theme to use\n");
+			System.out.printf("-s, --sound-off          Disables sounds\n\n");
 		}
 		
 	}
@@ -567,12 +636,14 @@ public class Breakthrough extends JFrame implements BreakthroughListener {
 	 * @param file The name of the file
 	 */
 	private void playSound(String file) {
-		try {
-			java.applet.AudioClip clip = java.applet.Applet.newAudioClip(this.getClass().getResource("sounds/"+file));
-			clip.play();
-		}
-		catch (Exception e) {
-			// Doesn't matter if the sound doesn't play
+		if (soundCK.isSelected()) {
+			try {
+				java.applet.AudioClip clip = java.applet.Applet.newAudioClip(this.getClass().getResource("sounds/"+file));
+				clip.play();
+			}
+			catch (Exception e) {
+				// Doesn't matter if the sound doesn't play
+			}
 		}
 	}
 	
